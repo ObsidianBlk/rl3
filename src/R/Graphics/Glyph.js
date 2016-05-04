@@ -66,7 +66,7 @@
       }
     }
   }
-
+  
   function Glyph(){
     Emitter.call(this);
 
@@ -116,8 +116,6 @@
 	  loading = false;
 	  this.emit("error", new RangeError("Image too small for cell values."));
 	} else {
-	  //this._inv_cwidth = 1/this._cell_width;
-	  //this._inv_cheight = 1/this._cell_height;
 	  buffer = document.createElement("canvas");
 	  buffer.width = img.width;
 	  buffer.height = img.height;
@@ -146,6 +144,87 @@
       // This kicks the image loading into gear.
       img.src = src;
     };
+
+    this.get = function(index){
+      var obj = null;
+      if (index >= 0 && index < elementCount){
+        
+        var x = info.offset_x + ((index%elementsDown)*(info.cell_width+info.spacing_x));
+        var y = info.offset_y + ((index%elementsAcross)*(info.cell_height+info.spacing_y));
+        var pixels = null;
+        var self = this;
+
+        obj = {};
+        Object.defineProperties(obj, {
+          "parent":{
+            get:function(){return self;}
+          },
+          
+          "x":{
+            get:function(){return x;}
+          },
+
+          "y":{
+            get:function(){return y;}
+          },
+
+          "w":{
+            get:function(){return info.cell_width;}
+          },
+
+          "h":{
+            get:function(){return info.cell_height;}
+          },
+
+          "index":{
+            get:function(){return index;}
+          },
+
+          "pixels":{
+            get:function(){
+	      if (pixels === null){
+	        pixels = buffer_context.getImageData(x*info.cell_width, y*info.cell_height, info.cell_width, info.cell_height);
+	      }
+	      var dst = buffer_context.createImageData(pixels.width, pixels.height);
+	      dst.data.set(pixels.data);
+	      return dst;
+	    }
+          }
+        });
+      }
+      return obj;
+    };
+
+
+    Object.defineProperties(this, {
+      "src":{
+        get:function(){return (img !== null) ? img.src : "";}
+      },
+
+      "loading":{
+        get:function(){
+          return loading;
+        }
+      },
+
+      "loaded":{
+        get:function(){
+          return (loading === false && buffer !== null && img !== null);
+        }
+      },
+
+      "cell_width":{
+        get:function(){return info.cell_width;}
+      },
+
+      "cell_height":{
+        get:function(){return info.cell_height;}
+      },
+
+      "elements":{
+        get:function(){return elementCount;}
+      }
+    });
   }
   Glyph.prototype.__proto__ = Emitter.prototype;
   Glyph.prototype.constructor = Glyph;
