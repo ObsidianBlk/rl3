@@ -38,9 +38,6 @@
     return Math.min(vmax, Math.max(vmin, v));
   }
 
-  // ------------------------------------------------------
-  // NOTE: The following block of functions borrowed from - http://stackoverflow.com/questions/5623838/rgb-to-hex-and-hex-to-rgb
-
   function componentToHex(c) {
     var hex = c.toString(16);
     return hex.length == 1 ? "0" + hex : hex;
@@ -178,26 +175,107 @@
     });
 
 
+    this.black = function(alpha){
+      color.r = 0;
+      color.g = 0;
+      color.b = 0;
+      color.a = clamp(alpha, 0, 255);
+    };
+
+    this.white = function(alpha){
+      color.r = 255;
+      color.g = 255;
+      color.b = 255;
+      color.a = clamp(alpha, 0, 255);
+    };
+
 
     this.blend = function(c){
       c = (!(c instanceof Color)) ? new Color(c) : c;
       var alpha = c.af;
       var ainv = 1.0 - alpha;
 
-      color.r = clamp(Math.floor((((color.r*INV_COLOR)*ainv) + ((c.rf)*alpha))*255), 0, 255);
-      color.g = clamp(Math.floor((((color.g*INV_COLOR)*ainv) + ((c.gf)*alpha))*255), 0, 255);
-      color.b = clamp(Math.floor((((color.b*INV_COLOR)*ainv) + ((c.bf)*alpha))*255), 0, 255);
+      color.r = clamp(Math.floor((((color.r*INV_COLOR)*ainv) + (c.rf*alpha))*255), 0, 255);
+      color.g = clamp(Math.floor((((color.g*INV_COLOR)*ainv) + (c.gf*alpha))*255), 0, 255);
+      color.b = clamp(Math.floor((((color.b*INV_COLOR)*ainv) + (c.bf*alpha))*255), 0, 255);
       color.a = clamp(color.a + c.a, 0, 255);
       return this;
     };
 
     this.blended = function(c){
+      c = (!(c instanceof Color)) ? new Color(c) : c;
+      var alpha = c.af;
+      var ainv = 1.0 - alpha;
 
+      return new Color({
+	r: Math.floor((((color.r*INV_COLOR)*ainv) + (c.rf*alpha))*255),
+	g: Math.floor((((color.g*INV_COLOR)*ainv) + (c.gf*alpha))*255),
+	b: Math.floor((((color.b*INV_COLOR)*ainv) + (c.bf*alpha))*255),
+	a: clamp(color.a + c.a, 0, 255)
+      });
+    };
+
+    this.add = function(c){
+      c = (!(c instanceof Color)) ? new Color(c) : c;
+      color.r = clamp(color.r + c.r, 0, 255);
+      color.g = clamp(color.g + c.g, 0, 255);
+      color.b = clamp(color.b + c.b, 0, 255);
+      color.a =  clamp(color.a + c.a, 0, 255);
+      return this;
+    };
+
+    this.added = function(c){
+      c = (!(c instanceof Color)) ? new Color(c) : c;
+      return new Color({
+	r: clamp(color.r + c.r, 0, 255),
+	g: clamp(color.g + c.g, 0, 255),
+	b: clamp(color.b + c.b, 0, 255),
+	a: clamp(color.a + c.a, 0, 255)
+      });
+    };
+
+    this.multiply = function(c){
+      c = (!(c instanceof Color)) ? new Color(c) : c;
+      color.r = Math.floor(((color.r*INV_COLOR) * c.rf) * 255);
+      color.g = Math.floor(((color.g*INV_COLOR) * c.gf) * 255);
+      color.b = Math.floor(((color.b*INV_COLOR) * c.bf) * 255);
+      color.a = clamp(Math.floor(((color.a*INV_COLOR) * c.af) * 255), 0, 255);
+      return this;
+    };
+
+    this.multiplied = function(c){
+      c = (!(c instanceof Color)) ? new Color(c) : c;
+      return new Color({
+	r: Math.floor(((color.r*INV_COLOR) * c.rf) * 255),
+	g: Math.floor(((color.g*INV_COLOR) * c.gf) * 255),
+	b: Math.floor(((color.b*INV_COLOR) * c.bf) * 255),
+	a: clamp(Math.floor(((color.a*INV_COLOR) * c.af) * 255), 0, 255)
+      });
+    };
+
+    this.scale = function(scale){
+      scale = (typeof(scale) === 'number') ? clamp(scale, 0.0, 1.0) : 1.0;
+      color.r = Math.floor(color.r * scale);
+      color.g = Math.floor(color.g * scale);
+      color.b = Math.floor(color.b * scale);
+      return this;
+    };
+
+    this.scaled = function(scale){
+      scale = (typeof(scale) === 'number') ? clamp(scale, 0.0, 1.0) : 1.0;
+      return new Color({
+	r: Math.floor(color.r * scale),
+	g: Math.floor(color.g * scale),
+	b: Math.floor(color.b * scale)
+      });
     };
   }
   Color.prototype.constructor = Color;
 
-  
+
+  // ------------------------------------------------------
+  // NOTE: The following block of functions borrowed from - http://stackoverflow.com/questions/5623838/rgb-to-hex-and-hex-to-rgb
+
   Color.RGBToHex = function(r, g, b) {
     return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
   };
