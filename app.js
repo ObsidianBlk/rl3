@@ -1,6 +1,10 @@
 
+requirejs.config({
+  baseUrl:"./"
+});
+requirejs(['src/Game/Main']);
 
-document.addEventListener("DOMContentLoaded", function(event) {
+/*document.addEventListener("DOMContentLoaded", function(event) {
   if (!(window.Game instanceof Object)){
     throw new Error("Missing the 'Game' object.");
   }
@@ -17,4 +21,4 @@ document.addEventListener("DOMContentLoaded", function(event) {
     minRows: 42
   });
   window.Game.application.start();
-});
+});*/

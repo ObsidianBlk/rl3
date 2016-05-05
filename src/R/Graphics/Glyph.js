@@ -183,11 +183,11 @@
           "pixels":{
             get:function(){
 	      if (pixels === null){
-	        pixels = buffer_context.getImageData(x*info.cell_width, y*info.cell_height, info.cell_width, info.cell_height);
+	        var psrc = buffer_context.getImageData(x*info.cell_width, y*info.cell_height, info.cell_width, info.cell_height);
+		pixels = buffer_context.createImageData(psrc.width, psrc.height);
+		pixels.data.set(psrc.data);
 	      }
-	      var dst = buffer_context.createImageData(pixels.width, pixels.height);
-	      dst.data.set(pixels.data);
-	      return dst;
+	      return pixels;
 	    }
           }
         });

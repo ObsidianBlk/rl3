@@ -53,20 +53,6 @@
       b: 0,
       a: 255
     };
-    
-    if (typeof(s_or_o) === 'string'){
-      // Decode hex
-      s_or_o = Color.HexToRPG(s_or_o);
-    } else if (s_or_o instanceof Color){
-      s_or_o = s_or_o.object;
-    }
-
-    if (typeof(s_or_o) === typeof({})){
-      color.r = (typeof(s_or_o.r) === 'number') ? clamp(Math.floor(s_or_o.r), 0, 255) : 0;
-      color.g = (typeof(s_or_o.g) === 'number') ? clamp(Math.floor(s_or_o.g), 0, 255) : 0;
-      color.b = (typeof(s_or_o.b) === 'number') ? clamp(Math.floor(s_or_o.b), 0, 255) : 0;
-      color.a = (typeof(s_or_o.a) === 'number') ? clamp(Math.floor(s_or_o.a), 0, 255) : 0;
-    }
 
     Object.defineProperties(this, {
       "hex":{
@@ -179,16 +165,34 @@
       color.r = 0;
       color.g = 0;
       color.b = 0;
-      color.a = clamp(alpha, 0, 255);
+      color.a = (typeof(alpha) === 'number') ? clamp(Math.floor(alpha), 0, 255) : 255;
+      return this;
     };
 
     this.white = function(alpha){
       color.r = 255;
       color.g = 255;
       color.b = 255;
-      color.a = clamp(alpha, 0, 255);
+      color.a = (typeof(alpha) === 'number') ? clamp(Math.floor(alpha), 0, 255) : 255;
+      return this;
     };
 
+    this.set = function(data){
+      if (typeof(data) === 'string'){
+	// Decode hex
+	data = Color.HexToRPG(data);
+      } else if (data instanceof Color){
+	data = data.object;
+      }
+
+      if (typeof(data) === typeof({})){
+	color.r = (typeof(data.r) === 'number') ? clamp(Math.floor(data.r), 0, 255) : 0;
+	color.g = (typeof(data.g) === 'number') ? clamp(Math.floor(data.g), 0, 255) : 0;
+	color.b = (typeof(data.b) === 'number') ? clamp(Math.floor(data.b), 0, 255) : 0;
+	color.a = (typeof(data.a) === 'number') ? clamp(Math.floor(data.a), 0, 255) : 0;
+      }
+      return this;
+    };
 
     this.blend = function(c){
       c = (!(c instanceof Color)) ? new Color(c) : c;
@@ -269,6 +273,12 @@
 	b: Math.floor(color.b * scale)
       });
     };
+
+
+    // Now that everything is setup, we finally set to the s_or_o passed in :)
+    if (typeof(s_or_o) !== 'undefined'){
+      this.set(s_or_o);
+    }
   }
   Color.prototype.constructor = Color;
 

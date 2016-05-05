@@ -68,58 +68,16 @@
   }
 })(this, function (Emitter, Glyph, Color) {
 
-  /* ---------------------------------------------------
-     Glyph Helper Functions and tracker.
-     We only want 1 copy of any sub-glyph at a time.
-     ---------------------------------------------------*/
-  var GlyphStore = {};
-
-  function GetGlyph(glyph, index){
-    var g = null; // Assume there is no glyph
-    if (index >= 0 && index < glyph.elements){ // If the index is out of bounds, we don't do anything.
-      var store = null;
-      if (glyph.src in GlyphStore){ // If the glyph.src is already in use...
-	store = GlyphStore[glyph.src];
-	for (var i=0; i < store.length; i++){ // Check to see if we're using this sub-glyph already. 
-	  if (store[i].index === index){
-	    g = store[i]; break; // So it seems we are!
-	  }
-	}
-
-	if (g === null){
-	  g = glyph.get(index);
-	  if (g !== null){
-	    store.push(g);
-	  }
-	}
-      } else {
-	g = glyph.get(index);
-	if (g !== null){
-	  store = [];
-	  store.push(g);
-	  GlyphStore[glyph.src] = store;
-	}
-      }
-    }
-    return g;
-  }
-
-  function DropGlyph(glyph, index){
-    if (glyph.src in GlyphStore){
-      var store = GlyphStore[glyph.src];
-      for (var i=0; i < store.length; i++){
-	if (store[i].index === index){
-	  store.splice(i, 1); break;
-	}
-      }
-    }
-  }
-
-  function DropAllGlyphs(glyph){
-    if (glyph.src in GlyphStore){
-      var store = GlyphStore[glyph.src];
-      store.splice(0, store.length);
-    }
+  // UTILITY FUNCTION... WILL BE MOVED LATER!!
+  function debounce(fn, delay) {
+    var timer = null;
+    return function () {
+      var context = this, args = arguments;
+      clearTimeout(timer);
+      timer = setTimeout(function () {
+	fn.apply(context, args);
+      }, delay);
+    };
   }
 
   /* ---------------------------------------------------
@@ -135,15 +93,26 @@
     // NOTE: If the glyph itself is fully opaque, then background will have no visible effect (though it will still be "rendered").
     var dirty = false;
 
+    this.set = function(g, options){
+      options = (typeof(options) === typeof({})) ? options : {};
+      this.glyph = g;
+      if (typeof(options.background) !== 'undefined'){
+	this.background = options.background;
+      }
+      if (typeof(options.foreground) !== 'undefined'){
+	this.foreground = options.foreground;
+      }
+    };
+
     this.resetDirtyState = function(){
       dirty = false;
     };
 
-    this.clear = function(){
+    this.clear = function(ignoreDirty){
       glyph = null;
       foreground = null;
       background = null;
-      dirty = true;
+      dirty = (ignoreDirty === true) ? false : true;
     };
 
     Object.defineProperties(this, {
@@ -168,11 +137,17 @@
 	}
       },
 
+      "glyphCode":{
+	get:function(){
+	  return (glyph !== null) ? glyph.index : null;
+	}
+      },
+
       "foreground":{
 	get:function(){return new Color(foreground);},
 	set:function(fg){
 	  // NOTE: I don't bother checking for type. Color will deal with that.
-	  foreground = new Color(fg);
+	  foreground = (fg !== null) ? new Color(fg) : null;
 	  dirty = true;
 	}
       },
@@ -180,7 +155,7 @@
       "background":{
 	get:function(){return new Color(background);},
 	set:function(bg){
-	  background = new Color(bg);
+	  background = (bg !== null) ? new Color(bg) : null;
 	  dirty = true;
 	}
       },
@@ -207,20 +182,134 @@
     options = (typeof(options) === typeof({})) ? options : {};
 
     var context = canvas.getContext('2d');
+    var renderWidth = canvas.width;
+    var renderHeight = canvas.height;
+    
+    var window = null;
+    var fitToWindow = false;
+    var winResizeCallback = null;
+    
     var glyph = (typeof(options.glyph) !== 'undefined' && options.glyph instanceof Glyph) ? options.glyph : null;
+    var gstorage = (glyph instanceof Glyph) ? new GlyphStorage(glyph) : null;
+    var cells = [];
+    
     var minColumns = (typeof(options.minColumns) === 'number' && options.minColumns > 0) ? Math.floor(options.minColumns) : 80;
     var minRows = (typeof(options.minRows) === 'number' && options.minRows > 0) ? Math.floor(options.minRows) : 80;
     var rows = 0;
     var columns = 0;
 
     // ----------------------------------------------------------
-    // Internal helper functions.
-    var UpdateTerminalSize = function(){
-      // Calculate terminal size changes...
-    };
+    // Internal system for managing sub-glyphs.
+    var sglyph = {};
+
+    function GetSubGlyph(code){
+      var sg = null;
+      if (glyph !== null){
+	if (code in sglyph){
+	  sglyph[code].ref += 1;
+	  sg = sglyph[code].subglyph;
+	} else if (code >= 0 && code < glyph.elements){
+	  sg = glyph.get(code);
+	  sglyph[code] = {
+	    ref: 1,
+	    subglyph: sg
+	  };
+	}
+      }
+      return sg;
+    }
+
+    function DropSubGlyph(code, all){
+      if (glyph !== null && code in sglyph){
+	all = (all === true) ? true : false;
+	if (sglyph[code].ref - 1 <= 0 || all === true){
+	  delete sglyph[code];
+	} else {
+	  sglyph[code].ref -= 1;
+	}
+      }
+    }
+
 
     // ----------------------------------------------------------
+    // Internal helper functions.
+
+    var UpdateTerminalSize = function(){
+      var old = [columns, rows];
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      sglyph = {};
+      if (glyph !== null){
+	columns = Math.max(minColumns, Math.floor(renderWidth/glyph.cell_width));
+	rows = Math.max(minRows, Math.floor(renderHeight/glyph.cell_height));
+
+	canvas.width = Math.max(renderWidth, columns*glyph.cell_width);
+	canvas.height = Math.max(renderHeight, rows*glyph.cell_height);
+      }
+
+      var oldCellCount = cells.length;
+      var newCellCount = rows*columns;
+      if (oldCellCount > newCellCount){
+	// Remove extra cells... if there are any.
+	cells.splice(newCellCount, oldCellCount-newCellCount);
+      } 
+      for (var i=0; i < newCellCount; i++){
+	if (i < oldCellCount){
+	  cells[i].clear(true);
+	} else if (i >= oldCellCount){
+	  // Add new cell.
+	  cells.push(new Cell(i));
+	}
+      }
+
+      this.emit("renderResize", [columns, rows], old);
+    };
+
+
+    // ----------------------------------------------------------
+    // Property Definitions
+
     Object.defineProperties(this, {
+      "element":{
+	get:function(){return canvas;}
+      },
+
+      "context":{
+	get:function(){return context;}
+      },
+
+      "window":{
+	get:function(){return window;},
+	set:function(win){
+	  // NOTE: It is assumed win is either null or a Browser Window object.
+	  if (window !== null && window !== win){
+	    window.removeEventListener("resize", winResizeCallback);
+	    winResizeCallback = null;
+	    window = null;
+	  }
+
+	  if (win !== null){ // If it is null, there's nothing more to do.
+	    window = win;
+	    var timer = null;
+	    winResizeCallback = debounce(function(){
+	      if (fitToWindow === true){
+		renderWidth = window.innerWidth;
+		renderHeight = window.innerHeight;
+		canvas.style.width = window.innerWidth + "px";
+		canvas.style.height = window.innerHeight + "px";
+	      }
+	      UpdateTerminalSize();
+	      this.emit("resize");
+	    }, 300).bind(this);
+	    window.addEventListener("resize", winResizeCallback);
+	  }
+	}
+      },
+
+      "terminalToWindow":{
+	get:function(){return fitToWindow;},
+	set:function(ftw){fitToWindow = (ftw === true) ? true : false;}
+      },
+
       "glyph":{
 	get:function(){return glyph;},
 	set:function(g){
@@ -233,8 +322,172 @@
 	    UpdateTerminalSize();
 	  }
 	}
+      },
+
+      "columns":{
+	get:function(){return columns;}
+      },
+
+      "rows":{
+	get:function(){return rows;}
+      },
+
+      "width":{
+	get:function(){return canvas.width;}
+      },
+
+      "height":{
+	get:function(){return canvas.height;}
       }
     });
+
+
+    // ----------------------------------------------------------
+    // Primary Methods!
+
+    this.set = function(c, r, code, options){
+      if (glyph !== null){
+	if (c >= 0 && c < columns && r >= 0 && r < rows){
+	  var index = (columns*r)+c;
+	  if (cells[index].glyphCode !== code){
+	    if (cells[index].glyphCode !== null){
+	      DropSubGlyph(cells[index].glyphCode);
+	    }
+	    var sg = GetSubGlyph(code);
+	    cells[index].set(sg, options);
+	  }
+	}
+      }
+    };
+
+    this.clearCell = function(c, r){
+      if (glyph !== null){
+	if (c >= 0 && c < columns && r >= 0 && r < rows){
+	  var index = (columns*r)+c;
+	  if (cells[index].glyphCode !== null){
+	    DropSubGlyph(cells[index].glyphCode);
+	    cells[index].clear();
+	  }
+	}
+      }
+    };
+
+    this.clearRegion = function(c, r, w, h){
+      if (glyph !== null && w > 0 && h > 0){
+	if (c >= 0 && c < columns && r >= 0 && r < rows){
+	  for (var cr = r; cr < r+h; cr++){
+	    for (var cc = c; cc < c+w; cc++){
+	      if (cc < columns && cr < rows){
+		var index = (cr*columns)+cc;
+		var code = cells[index].glyphCode;
+		if (code !== null){
+		  DropSubGlyph(code);
+		  cells[index].clear();
+		}
+	      }
+	    }
+	  }
+	}
+      }
+    };
+
+    this.clearRow = function(r, w){
+      if (glyph !== null && r >= 0 && r < rows){
+	w = (typeof(w) === 'number') ? Math.max(1, Math.min(Math.floor(w), columns)) : columns;
+	var row = (r*columns);
+	for (var c=0; c < w; c++){
+	  var index = row+c;
+	  var code = cells[index].glyphCode;
+	  if (code !== null){
+	    DropSubGlyph(code);
+	    cells[index].clear();
+	  }
+	}
+      }
+    };
+
+    this.clearColumn = function(c, h){
+      if (glyph !== null && c >= 0 && c < columns){
+	h = (typeof(h) === 'number') ? Math.max(1, Math.min(Math.floor(h), rows)) : rows;
+	for (var r=0; r < h; r++){
+	  var index = (r*columns)+c;
+	  var code = cells[index].glyphCode;
+	  if (code !== null){
+	    DropSubGlyph(code);
+	    cells[index].clear();
+	  }
+	}
+      }
+    };
+
+    this.clear = function(){
+      this.clearRegion(0, 0, columns, rows);
+    };
+
+    this.flip = function(){
+      if (glyph === null){return;}
+      var dcells = cells.filter(function(c){
+	return c.dirty;
+      });
+
+      var cw = glyph.cell_width;
+      var ch = glyph.cell_height;
+
+      var tint = new Color();
+      var color = new Color();
+      var mcolor = new Color();
+
+      var dclen = dcells.length;
+      for (var c=0; c < dclen; c++){
+	var cell = dcells[c];
+	cell.resetDirtyState();
+
+	var x = (cell.index%columns)*cw;
+	var y = Math.floor(cell.index/columns)*ch;
+
+	if (cell.glyphCode !== null){ // Check to see if there's something to render.
+	  var pixels = cell.glyph.pixels;
+	  var pcount = Math.floor(pixels.data.length/4);
+	  
+	  if (cell.background !== null){
+	    var old = context.fillStyle;
+	    context.fillStyle = cell.background.hex;
+	    context.fillRect(x, y, cw, ch);
+	    context.fillStyle = old;
+	  }
+
+	  var cpixels = context.getImageData(x, y, cw, ch);
+	  if (cell.foreground !== null){
+	    tint.set(cell.foreground);
+	  } else {tint.white();}
+
+	  for (var p=0; p < pcount; p++){
+	    color.set({
+	      r: cpixels.data[(p*4)],
+	      g: cpixels.data[(p*4)+1],
+	      b: cpixels.data[(p*4)+2],
+	      a: cpixels.data[(p*4)+3]
+	    }).blend(mcolor.set(tint).multiply({
+	      r: pixels.data[(p*4)],
+	      g: pixels.data[(p*4)+1],
+	      b: pixels.data[(p*4)+2],
+	      a: pixels.data[(p*4)+3]
+	    }));
+
+	    pixels.data[(p*4)] = color.r;
+	    pixels.data[(p*4)+1] = color.g;
+	    pixels.data[(p*4)+2] = color.b;
+	    pixels.data[(p*4)+3] = color.a;
+	  }
+
+	  // Output the pixels
+          context.putImageData(pixels, x, y);
+	} else {
+	  // If there's no glyphCode, then this cell is empty. Simply clear it!
+	  context.clearRect(x, y, cw, ch);
+	}
+      }
+    };
   }
   Terminal.prototype.__proto__ = Emitter.prototype;
   Terminal.prototype.constructor = Terminal;
