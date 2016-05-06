@@ -149,8 +149,8 @@
       var obj = null;
       if (index >= 0 && index < elementCount){
         
-        var x = info.offset_x + ((index%elementsDown)*(info.cell_width+info.spacing_x));
-        var y = info.offset_y + ((index%elementsAcross)*(info.cell_height+info.spacing_y));
+        var x = info.offset_x + ((index%elementsAcross)*(info.cell_width+info.spacing_x));
+        var y = info.offset_y + (Math.floor(index/elementsAcross)*(info.cell_height+info.spacing_y));
         var pixels = null;
         var self = this;
 
@@ -183,11 +183,11 @@
           "pixels":{
             get:function(){
 	      if (pixels === null){
-	        var psrc = buffer_context.getImageData(x, y, info.cell_width, info.cell_height);
-		pixels = buffer_context.createImageData(psrc.width, psrc.height);
-		pixels.data.set(psrc.data);
+	        pixels = buffer_context.getImageData(x, y, info.cell_width, info.cell_height);
 	      }
-	      return pixels;
+	      var cpy = buffer_context.createImageData(pixels.width, pixels.height);
+	      cpy.data.set(pixels.data);
+	      return cpy;
 	    }
           }
         });

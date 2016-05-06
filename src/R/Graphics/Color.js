@@ -180,7 +180,7 @@
     this.set = function(data){
       if (typeof(data) === 'string'){
 	// Decode hex
-	data = Color.HexToRPG(data);
+	data = Color.HexToRGB(data);
       } else if (data instanceof Color){
 	data = data.object;
       }
@@ -189,7 +189,7 @@
 	color.r = (typeof(data.r) === 'number') ? clamp(Math.floor(data.r), 0, 255) : 0;
 	color.g = (typeof(data.g) === 'number') ? clamp(Math.floor(data.g), 0, 255) : 0;
 	color.b = (typeof(data.b) === 'number') ? clamp(Math.floor(data.b), 0, 255) : 0;
-	color.a = (typeof(data.a) === 'number') ? clamp(Math.floor(data.a), 0, 255) : 0;
+	color.a = (typeof(data.a) === 'number') ? clamp(Math.floor(data.a), 0, 255) : 255;
       }
       return this;
     };

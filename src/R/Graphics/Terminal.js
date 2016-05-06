@@ -462,8 +462,8 @@
 
 	  var cpixels = context.getImageData(x, y, cw, ch);
 	  if (cell.foreground !== null){
-	    tint.set(cell.foreground);
-	  } else {tint.white();}
+	    tint = cell.foreground;
+	  } else {tint = (new Color()).white();}
 
 	  for (var p=0; p < pcount; p++){
 	    color.set({
