@@ -183,7 +183,7 @@
           "pixels":{
             get:function(){
 	      if (pixels === null){
-	        var psrc = buffer_context.getImageData(x*info.cell_width, y*info.cell_height, info.cell_width, info.cell_height);
+	        var psrc = buffer_context.getImageData(x, y, info.cell_width, info.cell_height);
 		pixels = buffer_context.createImageData(psrc.width, psrc.height);
 		pixels.data.set(psrc.data);
 	      }

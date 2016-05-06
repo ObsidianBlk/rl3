@@ -122,7 +122,7 @@
 
       "empty":{
 	get:function(){
-	  return (glyph !== null || foreground !== null || background !== null);
+	  return !(glyph !== null || foreground !== null || background !== null);
 	}
       },
 
@@ -144,7 +144,7 @@
       },
 
       "foreground":{
-	get:function(){return new Color(foreground);},
+	get:function(){return (foreground !== null) ? new Color(foreground) : null;},
 	set:function(fg){
 	  // NOTE: I don't bother checking for type. Color will deal with that.
 	  foreground = (fg !== null) ? new Color(fg) : null;
@@ -153,7 +153,7 @@
       },
 
       "background":{
-	get:function(){return new Color(background);},
+	get:function(){return (background !== null) ? new Color(background) : null;},
 	set:function(bg){
 	  background = (bg !== null) ? new Color(bg) : null;
 	  dirty = true;
@@ -189,8 +189,7 @@
     var fitToWindow = false;
     var winResizeCallback = null;
     
-    var glyph = (typeof(options.glyph) !== 'undefined' && options.glyph instanceof Glyph) ? options.glyph : null;
-    var gstorage = (glyph instanceof Glyph) ? new GlyphStorage(glyph) : null;
+    var glyph = null;//(typeof(options.glyph) !== 'undefined' && options.glyph instanceof Glyph) ? options.glyph : null;
     var cells = [];
     
     var minColumns = (typeof(options.minColumns) === 'number' && options.minColumns > 0) ? Math.floor(options.minColumns) : 80;
@@ -234,7 +233,7 @@
     // ----------------------------------------------------------
     // Internal helper functions.
 
-    var UpdateTerminalSize = function(){
+    var UpdateTerminalSize = (function(){
       var old = [columns, rows];
       context.clearRect(0, 0, canvas.width, canvas.height);
       sglyph = {};
@@ -262,7 +261,7 @@
       }
 
       this.emit("renderResize", [columns, rows], old);
-    };
+    }).bind(this);
 
 
     // ----------------------------------------------------------
@@ -289,8 +288,7 @@
 
 	  if (win !== null){ // If it is null, there's nothing more to do.
 	    window = win;
-	    var timer = null;
-	    winResizeCallback = debounce(function(){
+	    winResizeCallback = debounce((function(){
 	      if (fitToWindow === true){
 		renderWidth = window.innerWidth;
 		renderHeight = window.innerHeight;
@@ -299,7 +297,7 @@
 	      }
 	      UpdateTerminalSize();
 	      this.emit("resize");
-	    }, 300).bind(this);
+	    }).bind(this), 300).bind(this);
 	    window.addEventListener("resize", winResizeCallback);
 	  }
 	}
@@ -340,6 +338,12 @@
 	get:function(){return canvas.height;}
       }
     });
+
+
+    // Setting the glyph if given. Do it here for... reasons.
+    if (typeof(options.glyph) !== 'undefined' && options.glyph instanceof Glyph){
+      this.glyph = options.glyph;
+    }
 
 
     // ----------------------------------------------------------

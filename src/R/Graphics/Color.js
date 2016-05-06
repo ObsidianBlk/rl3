@@ -276,7 +276,7 @@
 
 
     // Now that everything is setup, we finally set to the s_or_o passed in :)
-    if (typeof(s_or_o) !== 'undefined'){
+    if (typeof(s_or_o) !== 'undefined' && s_or_o !== null){
       this.set(s_or_o);
     }
   }
@@ -304,6 +304,9 @@
       b: parseInt(result[3], 16)
     } : null;
   };
+
+
+  return Color;
   
 });
 
