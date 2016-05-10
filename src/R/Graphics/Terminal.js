@@ -122,7 +122,7 @@
 
       "empty":{
 	get:function(){
-	  return !(glyph !== null || foreground !== null || background !== null);
+	  return (glyph === null && foreground === null && background === null);
 	}
       },
 
@@ -186,7 +186,7 @@
     var renderHeight = canvas.height;
     
     var window = null;
-    var fitToWindow = false;
+    var fitToWindow = (options.terminalToWindow === true) ? true : false;
     var winResizeCallback = null;
     
     var glyph = null;//(typeof(options.glyph) !== 'undefined' && options.glyph instanceof Glyph) ? options.glyph : null;
@@ -299,6 +299,7 @@
 	      this.emit("resize");
 	    }).bind(this), 300).bind(this);
 	    window.addEventListener("resize", winResizeCallback);
+	    winResizeCallback(); // Calling the callback. This should connect everything once.
 	  }
 	}
       },
@@ -340,7 +341,10 @@
     });
 
 
-    // Setting the glyph if given. Do it here for... reasons.
+    // Setting the glyph and/or window if given. Do it here for... reasons.
+    if (typeof(options.window) !== 'undefined'){
+      this.window = options.window;
+    }
     if (typeof(options.glyph) !== 'undefined' && options.glyph instanceof Glyph){
       this.glyph = options.glyph;
     }
@@ -458,6 +462,9 @@
 	    context.fillStyle = cell.background.hex;
 	    context.fillRect(x, y, cw, ch);
 	    context.fillStyle = old;
+	  } else {
+	    // If there's no background for this cell, and it's been changed, let's clear the old pixels out.
+	    context.clearRect(x, y, cw, ch);
 	  }
 
 	  var cpixels = context.getImageData(x, y, cw, ch);
@@ -466,17 +473,19 @@
 	  } else {tint = (new Color()).white();}
 
 	  for (var p=0; p < pcount; p++){
-	    color.set({
-	      r: cpixels.data[(p*4)],
-	      g: cpixels.data[(p*4)+1],
-	      b: cpixels.data[(p*4)+2],
-	      a: cpixels.data[(p*4)+3]
-	    }).blend(mcolor.set(tint).multiply({
-	      r: pixels.data[(p*4)],
-	      g: pixels.data[(p*4)+1],
-	      b: pixels.data[(p*4)+2],
-	      a: pixels.data[(p*4)+3]
-	    }));
+	    color.setRGBA(
+	      cpixels.data[(p*4)],
+	      cpixels.data[(p*4)+1],
+	      cpixels.data[(p*4)+2],
+	      cpixels.data[(p*4)+3]
+	    ).blend(
+	      mcolor.setRGBA(
+		pixels.data[(p*4)],
+		pixels.data[(p*4)+1],
+		pixels.data[(p*4)+2],
+		pixels.data[(p*4)+3]
+	      ).multiply(tint)
+	    );
 
 	    pixels.data[(p*4)] = color.r;
 	    pixels.data[(p*4)+1] = color.g;

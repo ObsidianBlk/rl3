@@ -194,6 +194,18 @@
       return this;
     };
 
+    this.setRGBA = function(r, g, b, a){
+      color.r = clamp(Math.floor(r), 0, 255);
+      color.g = clamp(Math.floor(g), 0, 255);
+      color.b = clamp(Math.floor(b), 0, 255);
+      color.a = clamp(Math.floor(a), 0, 255);
+      return this;
+    };
+
+    this.clone = function(){
+      return (new Color()).setRGBA(color.r, color.g, color.b, color.a);
+    };
+
     this.blend = function(c){
       c = (!(c instanceof Color)) ? new Color(c) : c;
       var alpha = c.af;

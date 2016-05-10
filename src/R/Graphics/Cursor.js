@@ -91,6 +91,8 @@
     var data_wrap_type = Cursor.WRAP_TYPE_CHARACTER;
 
     var tab_size = 4; // Number of white spaces to use if a tab code is being rendered.
+    var tab_as_spaces = true; // TABs are rendered as spaces. If true, background colors will be rendered out as they are with space characters.
+    var nl_auto_cr = true; // Automatically include a carriage return when a newline is seen.
 
     // -----------------------------------------------
     // Helper function for rendering strings to the terminal.
@@ -108,6 +110,55 @@
     // -----------------------------------------------
 
     Object.defineProperties(this, {
+      "terminal":{
+	get:function(){return term;}
+      },
+
+      "foreground":{
+	get:function(){return (foreground !== null) ? new Color(foreground) : null;},
+	set:function(fg){
+	  if (typeof(fg) === 'undefined' || fg === null){
+	    foreground = null;
+	  } else if (typeof(fg) === 'string' || fg instanceof Color){
+	    foreground = new Color(fg);
+	  }
+	}
+      },
+
+      "background":{
+	get:function(){return (background !== null) ? new Color(background) : null;},
+	set:function(bg){
+	  if (typeof(bg) === 'undefined' || bg === null){
+	    background = null;
+	  } else if (typeof(bg) === 'string' || bg instanceof Color){
+	    background = new Color(bg);
+	  }
+	}
+      },
+
+      "tabSize":{
+	get:function(){return tab_size;},
+	set:function(size){
+	  if (typeof(size) === 'number' && size >= 1){
+	    tab_size = Math.floor(size);
+	  }
+	}
+      },
+
+      "tabAsSpaces":{
+	get:function(){return tab_as_spaces;},
+	set:function(enable){
+	  tab_as_spaces = (typeof(enable) === 'boolean') ? enable : tab_as_spaces;
+	}
+      },
+
+      "nlAutoCr":{
+	get:function(){return nl_auto_cr;},
+	set:function(enable){
+	  nl_auto_cr = (typeof(enable) === 'boolean') ? enable : nl_auto_cr;
+	}
+      },
+
       "region":{
 	get:function(){
 	  return {
@@ -116,24 +167,86 @@
 	    bottom:bottom,
 	    right:right
 	  };
+	},
+	set:function(reg){
+	  if (typeof(reg) === typeof({})){
+	    var _left = left;
+	    var _top = top;
+	    var _right = right;
+	    var _bottom = bottom;
+
+	    if (typeof(reg.top) === 'number' && reg.top >= 0 && reg.top < term.rows){
+	      _top = Math.floor(reg.top);
+	    }
+	    if (typeof(reg.left) === 'number' && reg.left >= 0 && reg.left < term.columns){
+	      _left = Math.floor(reg.left);
+	    }
+	    if (typeof(reg.bottom) === 'number' && reg.bottom >= 0 && reg.bottom < term.rows){
+	      _bottom = Math.floor(reg.bottom);
+	    }
+	    if (typeof(reg.right) === 'number' && reg.right >= 0 && reg.right < term.columns){
+	      _right = Math.floor(reg.right);
+	    }
+
+	    var tmp = 0;
+	    if (_right < _left){
+	      tmp = _left;
+	      _left = _right;
+	      _right = tmp;
+	    }
+	    if (_right - _left <= 0){
+	      throw new RangeError();
+	    }
+	    width = _right - _left;
+
+	    if (_bottom < _top){
+	      tmp = _bottom;
+	      _bottom = _top;
+	      _top = tmp;
+	    }
+	    if (_bottom - _top <= 0){
+	      throw new RangeError();
+	    }
+	    height = _bottom - _top;
+
+	    left = _left;
+	    right = _right;
+	    top = _top;
+	    bottom = _bottom;
+	  }
+	}
+      },
+
+      "columns":{
+	get:function(){return width;}
+      },
+
+      "rows":{
+	get:function(){return height;}
+      },
+
+      "c":{
+	get:function(){return pos_c;},
+	set:function(c){
+	  if (typeof(c) === 'number'){
+	    if (c >= 0 && c < width){
+	      pos_c = Math.floor(c);
+	    }
+	  }
+	}
+      },
+
+      "r":{
+	get:function(){return pos_r;},
+	set:function(r){
+	  if (typeof(r) === 'number'){
+	    if (r >= 0 && r < height){
+	      pos_r = Math.floor(r);
+	    }
+	  }
 	}
       }
     });
-
-
-    this.position = function(c, r){
-      if (typeof(c) === 'number'){
-	if (c >= 0 && c < width){
-	  pos_c = Math.floor(c);
-	}
-      }
-      if (typeof(r) === 'number'){
-	if (r >= 0 && r < height){
-	  pos_r = Math.floor(r);
-	}
-      }
-      return {c:pos_c, r:pos_r};
-    };
 
     this.cr = function(){
       pos_c = 0;
@@ -229,22 +342,33 @@
       }
     };
 
-    this.set = function(code, options){
-      options = (typeof(options) === typeof({})) ? options : null;
-      var outop = {};
-      if (typeof(options.foreground) === 'string' || options.foreground instanceof Color){
-	outop.foreground = new Color(options.foreground);
-      }
-      if (typeof(options.background) === 'string' || options.background instanceof Color){
-	outop.background = new Color(options.background);
-      }
-      var wrap = data_wrap_type;
-      if (typeof(options.wrap_type) === 'number'){
-	if (options.wrap_type === Cursor.WRAP_TYPE_NOWRAP || options.wrap_type === Cursor.WRAP_TYPE_CHARACTER){
-	  wrap = options.wrap_type;
-	}
+    this.clear = function(){
+      term.clearRegion(left, top, width, height);
+    };
+
+    this.clearRegion = function(c, r, w, h){
+      var _c = c;
+      if (_c < 0){
+	_c = 0;
+      } else if (_c >= width){
+	_c = width - 1;
       }
 
+      var _r = r;
+      if (_r < 0){
+	_r = 0;
+      } else if (_r >= height){
+	_r = height - 1;
+      }
+
+      var _w = (_c + w < width) ? w : width - _c;
+      var _h = (_r + h < height) ? h : height - _r;
+
+      term.clearRegion(_c+left, _r+top, _w, _h);
+    };
+
+    this.set = function(code, wrap_type, options){
+      var wrap = (wrap_type === Cursor.WRAP_TYPE_NOWRAP || wrap_type === Cursor.WRAP_TYPE_CHARACTER) ? wrap_type : Cursor.WRAP_TYPE_NOWRAP;
       term.set(left + pos_c, top + pos_r, code, options);
       return this.shiftC(1, wrap);
     };
@@ -261,13 +385,17 @@
 	throw new TypeError();
       }
 
-      options = (typeof(options) === typeof({})) ? options : null;
+      options = (typeof(options) === typeof({})) ? options : {};
       var outop = {};
-      if (typeof(options.foreground) === 'string' || options.foreground instanceof Color){
-	outop.foreground = new Color(options.foreground);
+      if (typeof(options.foreground) !== 'undefined'){
+	if (typeof(options.foreground) === 'string' || options.foreground instanceof Color){
+	  outop.foreground = new Color(options.foreground);
+	}
       }
-      if (typeof(options.background) === 'string' || options.background instanceof Color){
-	outop.background = new Color(options.background);
+      if (typeof(options.background) !== 'undefined'){
+	if (typeof(options.background) === 'string' || options.background instanceof Color){
+	  outop.background = new Color(options.background);
+	}
       }
       var wrap = data_wrap_type;
       if (typeof(options.wrap_type) === 'number'){
@@ -289,13 +417,17 @@
       if (typeof(text) !== 'string'){
 	throw new TypeError();
       }
-      options = (typeof(options) === typeof({})) ? options : null;
+      options = (typeof(options) === typeof({})) ? options : {};
       var outop = {};
-      if (typeof(options.foreground) === 'string' || options.foreground instanceof Color){
-	outop.foreground = new Color(options.foreground);
+      if (typeof(options.foreground) !== 'undefined'){
+	if (typeof(options.foreground) === 'string' || options.foreground instanceof Color){
+	  outop.foreground = new Color(options.foreground);
+	}
       }
-      if (typeof(options.background) === 'string' || options.background instanceof Color){
-	outop.background = new Color(options.background);
+      if (typeof(options.background) !== 'undefined'){
+	if (typeof(options.background) === 'string' || options.background instanceof Color){
+	  outop.background = new Color(options.background);
+	}
       }
       var wrap = text_wrap_type;
       if (typeof(options.wrap_type) === 'number'){
@@ -330,18 +462,42 @@
 	pos += word.length; // Set position to the beginning of the next "word".
 
 	if (spacecode === Cursor.SP_CODE){ // A single space
-	  if (typeof(outop.background) !== 'undefined'){
-	    this.set(spacecode, outop);
-	  }
+	  if (this.set(spacecode, wrap_type, outop) === false){break;}
 	} else if (spacecode === Cursor.NL_CODE){ // Newline
-	  
+	  if (wrap_type === Cursor.WRAP_TYPE_NOWRAP || this.nl(nl_auto_cr) === false){break;}
 	} else if (spacecode === Cursor.CR_CODE){ // Carriage Return
-
+	  if (pos < text.length && text.charCodeAt(pos+1) === Cursor.NL_CODE){ // Check for an immediately following newline
+	    // If one exists, ignore the nl_auto_cr and just do both together (this should allow text to flow as expected whether it's in
+	    // windows or postix style).
+	    pos += 1;
+	    if (wrap_type === Cursor.WRAP_TYPE_NOWRAP || this.nl(1, true) === false){break;}
+	  } else {
+	    this.cr();
+	  }
 	} else if (spacecode === Cursor.TAB_CODE){ // Tab space
-
+	  if (tab_as_spaces === true){
+	    for (var i=0; i < tab_size; i++){
+	      var breakTextLoop = false;
+	      if (this.set(Cursor.SP_CODE, Cursor.WRAP_TYPE_NOWRAP, outop) === false){
+		if (wrap_type !== Cursor.WRAP_TYPE_NOWRAP){
+		  if (this.nl(true) === false){
+		    breakTextLoop = true;
+		  }
+		  break;
+		}
+	      }
+	    }
+	    if (breakTextLoop === true){break;}
+	  } else {
+	    if (this.shiftC(tab_size, wrap_type) === false){break;}
+	  }
 	}
+	pos += 1;
       }
     };
+
+
+
   }
   Cursor.prototype.constructor = Cursor;
 
