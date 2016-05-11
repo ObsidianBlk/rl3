@@ -60,7 +60,7 @@
     if (exists(root, "R.Graphics.Terminal") === false){
       throw new Error("Missing required object");
     }
-    def(root, "R.Graphics.Terminal", factory(
+    def(root, "R.Graphics.Cursor", factory(
       root.R.System.Emitter,
       root.R.Graphics.Color,
       root.R.Graphics.Terminal
@@ -258,7 +258,7 @@
       }
       pos_r += 1;
 
-      if (autoCR === true){
+      if (autoCR === true || nl_auto_cr === true){
 	pos_c = 0;
       }
       return true;
@@ -470,7 +470,7 @@
 	    // If one exists, ignore the nl_auto_cr and just do both together (this should allow text to flow as expected whether it's in
 	    // windows or postix style).
 	    pos += 1;
-	    if (wrap_type === Cursor.WRAP_TYPE_NOWRAP || this.nl(1, true) === false){break;}
+	    if (wrap_type === Cursor.WRAP_TYPE_NOWRAP || this.nl(true) === false){break;}
 	  } else {
 	    this.cr();
 	  }
