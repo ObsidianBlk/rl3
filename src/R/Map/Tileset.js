@@ -72,6 +72,7 @@
         "id":"", // Unique string value (UUID)
         "name":"", // Very brief description of tile... Ex. "Wall" or "White Wall"
         "description":"", // A longer (2 line?) description of the tile... Ex. "It's a bloody white tile you git."
+	"tags":["string",...], // [OPTIONAL] An array of strings that can be used to identify the purpose or catagory of the tile.
         "movability":0, // A number from 0 to 1 which determines the speed at which entities can move across the tile.
         "visibility":0, // A number from 0 to 1 which determines the distance an entity can "see" past this tile.
         "primeglyph":0, // A numerical index between 0 and 255 which identifies the primary glyph to use when rendering this tile.
@@ -83,70 +84,371 @@
 
    */
 
+
+  // Helper Functions!
+  function HasTag(tile, tag, ignoreCase){
+    if (tag.length > 0 && tile.tag !== null){
+      var lctag = tag.toLowerCase();
+      for (var i=0; i < tile.tag.length; i++){
+	if (ignoreCase === true && tile.tag[i].toLowerCase() === lctag){
+	  return true;
+	} else if (tile.tag[i] === tag){
+	  return true;
+	}
+      }
+    }
+    return false;
+  }
+
+  function AddTag(tile, tag){
+    if (tag.length > 0){
+      if (tile.tag === null){
+	tile.tag = [];
+      }
+      if (HasTag(tile, tag, true) === false){
+	tile.tag.push(tag);
+	return true;
+      }
+    }
+    return false;
+  }
+
+  function RemoveTag(tile, tag){
+    if (tag.length > 0 && tile.tag !== null){
+      var lctag = tag.toLowerCase();
+      for (var i=0; i < tile.tag.length; i++){
+	if (tile.tag[i].toLowerCase() === lctag){
+	  tile.tag.splice(i, 1);
+	  return true;
+	}
+      }
+    }
+    return false;
+  }
+
+  // -------------------------------
+
+
   function Tileset(){
     Emitter.call(this);
 
     var tlist = [];
 
+    function GetTileInfoObject(id){
+      for (var i=0; i < tlist.length; i++){
+	if (tlist[i].data.id === id){
+	  return tlist[i];
+	}
+      }
+      return null;
+    }
+
     this.contains = function(id){
       return (tlist.filter(function(i){
         return i.id === id;
-      }).length > 0;
+      })).length > 0;
     };
 
-    this.set = function(id, name, desc, glyph, move, vis, fg, bg, bglyph){
-      if (this.contains(id) === false){
-        if (typeof(name) !== 'string' || name.length <= 0){
+    this.remove = function(id){
+      for (var i=0; i < tlist.length; i++){
+	if (tlist[i].data.id === id){
+	  tlist[i].data.id = null; // This will invalidate any handlers being used.
+	  tlist.splice(i, 1);
+	  break;
+	}
+      }
+    };
+
+    this.set = function(id, info){
+      var tile = GetTileInfoObject(id);
+      if (tile === null){
+	tile = {
+	  data: {
+	    id:id,
+	    name:"tile",
+	    description:"",
+	    primeglyph: 0,
+	    betaglyph: -1,
+	    movability: 0.0,
+	    visibility: 0.0,
+	    foreground: null,
+	    background: null,
+	    tag: null
+	  }
+	};
+	tile.handler = new Tileset.Tile(tile.data);
+	// If this is a new tile, confirm all of the required information is present.
+	if (typeof(info.name) !== 'string' || info.name.length <= 0){
           throw new TypeError();
         }
-        if (typeof(desc) !== 'string'){
+        if (typeof(info.description) !== 'string'){
           throw new TypeError();
         }
-        if (typeof(glyph) !== 'number'){
+        if (typeof(info.primeglyph) !== 'number'){
           throw new TypeError();
         }
-        if (glyph < 0 || glyph > 255){
+        if (info.primeglyph < 0 || info.primeglyph > 255){
           throw new RangeError();
         }
-        if (typeof(move) !== 'number'){
+        if (typeof(info.movability) !== 'number'){
           throw new TypeError();
         }
-        if (typeof(vis) !== 'number'){
+        if (typeof(info.visibility) !== 'number'){
           throw new TypeError();
         }
-        
-        var obj = {
-          id:id,
-          name:name,
-          description:desc,
-          primeglyph:Math.floor(glyph),
-          movability:Math.min(1.0, Math.max(0.0, move)),
-          visibility:Math.min(1.0, Math.max(0.0, vis)),
-          foreground:null,
-          background:null,
-          betaglyph:null
-        };
-
-        if (typeof(fg) !== 'undefined' && (typeof(fg) === 'string' || fg instanceof Color)){
-          obj.foreground = new Color(fg);
-        }
-        if (typeof(bg) !== 'undefined' && (typeof(bg) === 'string' || bg instanceof Color)){
-          obj.background = new Color(bg);
-        }
-
-        if (typeof(bglyph) === 'number'){
-          if (bglyph < 0){
-            throw new RangeError();
-          }
-          obj.betaglyph = bglyph;
-        }
-
-        tlist.push(obj);
+	tlist.push(tile);
       }
+
+      if (typeof(info.name) === 'string' && info.name.length > 0){
+	tile.data.name = info.name;
+      }
+      if (typeof(info.description) === 'string'){
+	tile.data.description = info.description;
+      }
+      if (typeof(info.primeglyph) === 'number' && info.primeglyph >= 0 && info.primeglyph < 256){
+	tile.data.primeglyph = Math.floor(info.primeglyph);
+      }
+      if (typeof(info.betaglyph) === 'number' && info.betaglyph >= -1){
+	tile.data.betaglyph = Math.floor(info.betaglyph);
+      }
+      if (typeof(info.movability) === 'number'){
+	tile.data.movability = Math.min(1.0, Math.max(0.0, info.movability));
+      }
+      if (typeof(info.visibility) === 'number'){
+	tile.data.visibility = Math.min(1.0, Math.max(0.0, info.visibility));
+      }
+      if (typeof(info.foreground) !== 'undefined' && (typeof(info.foreground) === 'string' || info.foreground instanceof Color)){
+        tile.data.foreground = new Color(info.foreground);
+      }
+      if (typeof(info.background) !== 'undefined' && (typeof(info.background) === 'string' || info.background instanceof Color)){
+        tile.data.background = new Color(info.background);
+      }
+      if (typeof(info.tag) !== 'undefined' && info.tag instanceof Array){
+	if (info.tag.length > 0){
+	  for (var i=0; i < info.tag.length; i++){
+	    AddTag(tile.data, info.tag);
+	  }
+	}
+      }
+    };
+
+    this.get = function(id){
+      var tile = GetTileInfoObject(id);
+      return (tile !== null) ? tile.handler : null;
     };
   }
   Tileset.prototype.__proto__ = Emitter.prototype;
   Tileset.prototype.constructor = Tileset;
+
+  Tileset.Tile = function(obj){
+    Emitter.call(this);
+
+    this.hasTag = function(tag, ignoreCase){
+      if (obj.id === null){throw new Error("Tile Handler Invalid");}
+      return HasTag(obj, tag, ignoreCase);
+    };
+
+    this.addTag = function(tag){
+      if (obj.id === null){throw new Error("Tile Handler Invalid");}
+      if (AddTag(obj, tag) === true){
+	this.emit("changed", "tag", tag, false);
+      }
+    };
+
+    this.removeTag = function(tag, ignoreCase){
+      if (obj.id === null){throw new Error("Tile Handler Invalid");}
+      if (RemoveTag(obj, tag, ignoreCase) === true){
+	this.emit("changed", "tag", tag, true);
+      }
+    };
+
+    this.set = function(info){
+      if (obj.id === null){throw new Error("Tile Handler Invalid");}
+      var changed = [];
+      if (typeof(info.name) === 'string' && info.name.length > 0){
+	obj.name = info.name;
+	changed.push("name");
+      }
+      if (typeof(info.description) === 'string'){
+	obj.description = info.description;
+	changed.push("description");
+      }
+      if (typeof(info.primeglyph) === 'number' && info.primeglyph >= 0 && info.primeglyph < 256){
+	obj.primeglyph = Math.floor(info.primeglyph);
+	changed.push("primeglyph");
+      }
+      if (typeof(info.betaglyph) === 'number' && info.betaglyph >= -1){
+	obj.betaglyph = Math.floor(info.betaglyph);
+	changed.push("betaglyph");
+      }
+      if (typeof(info.movability) === 'number'){
+	obj.movability = Math.min(1.0, Math.max(0.0, info.movability));
+	changed.push("movability");
+      }
+      if (typeof(info.visibility) === 'number'){
+	obj.visibility = Math.min(1.0, Math.max(0.0, info.visibility));
+	changed.push("visibility");
+      }
+      if (typeof(info.foreground) !== 'undefined' && (typeof(info.foreground) === 'string' || info.foreground instanceof Color)){
+        obj.foreground = new Color(info.foreground);
+	changed.push("foreground");
+      }
+      if (typeof(info.background) !== 'undefined' && (typeof(info.background) === 'string' || info.background instanceof Color)){
+        obj.background = new Color(info.background);
+	changed.push("background");
+      }
+      if (typeof(info.tag) !== 'undefined' && info.tag instanceof Array){
+	if (info.tag.length > 0){
+	  var found = false;
+	  for (var i=0; i < info.tag.length; i++){
+	    if (AddTag(obj, info.tag) === true && found === false){
+	      found = true;
+	      changed.push("tag");
+	    }
+	  }
+	}
+      }
+
+      if (changed.length > 0){
+	this.emit("changed", changed);
+      }
+    };
+
+    Object.defineProperties(this, {
+      "valid":{
+	get:function(){return obj.id !== null;}
+      },
+      "id":{
+	get:function(){return obj.id;}
+      },
+      "name":{
+	get:function(){return obj.name;},
+	set:function(name){
+	  if (obj.id === null){throw new Error("Tile Handler Invalid");}
+	  if (typeof(name) !== 'string'){
+	    throw new TypeError("Expecting String Type.");
+	  }
+	  if (name.length <= 0){
+	    throw new Error("Zero length string not allowed.");
+	  }
+	  obj.name = name;
+	  this.emit("changed", "name");
+	}
+      },
+      "description":{
+	get:function(){return obj.description;},
+	set:function(desc){
+	  if (obj.id === null){throw new Error("Tile Handler Invalid");}
+	  if (typeof(desc) !== 'string'){
+	    throw new TypeError("Expecting String Type.");
+	  }
+	  obj.description = desc;
+	  this.emit("changed", "description");
+	}
+      },
+      "movability":{
+	get:function(){return obj.movability;},
+	set:function(m){
+	  if (obj.id === null){throw new Error("Tile Handler Invalid");}
+	  if (typeof(m) !== 'number'){
+	    throw new TypeError("Expecting Number Type.");
+	  }
+	  obj.movability = Math.min(1.0, Math.max(0.0, m));
+	  this.emit("changed", "movability");
+	}
+      },
+      "visibility":{
+	get:function(){return obj.visibility;},
+	set:function(v){
+	  if (obj.id === null){throw new Error("Tile Handler Invalid");}
+	  if (typeof(v) !== 'number'){
+	    throw new TypeError("Expecting Number Type.");
+	  }
+	  obj.visibility = Math.min(1.0, Math.max(0.0, v));
+	  this.emit("changed", "visibility");
+	}
+      },
+      "primeglyph":{
+	get:function(){return obj.primeglyph;},
+	get:function(g){
+	  if (obj.id === null){throw new Error("Tile Handler Invalid");}
+	  if (typeof(g) !== 'number'){
+	    throw new TypeError("Expecting Number Type.");
+	  }
+	  if (g < 0 || g >= 256){
+	    throw new RangeError("Value out of range.");
+	  }
+	  obj.primeglyph = Math.floor(g);
+	  this.emit("changed", "primeglyph");
+	}
+      },
+      "betaglyph":{
+	get:function(){return obj.betaglyph;},
+	set:function(g){
+	  if (obj.id === null){throw new Error("Tile Handler Invalid");}
+	  if (typeof(g) !== 'number'){
+	    throw new TypeError("Expecting Number Type.");
+	  }
+	  if (g < 0){
+	    throw new RangeError("Value out of range.");
+	  }
+	  obj.betaglyph = Math.floor(g);
+	  this.emit("changed", "betaglyph");
+	}
+      },
+      "foreground":{
+	get:function(){
+	  return (obj.foreground === null) ? null : obj.foreground.clone();
+	},
+	set:function(fg){
+	  if (obj.id === null){throw new Error("Tile Handler Invalid");}
+	  if (fg === null){
+	    obj.foreground = null;
+	  } else if (typeof(fg) === 'string'){
+	    obj.foreground = new Color(fg);
+	  } else if (fg instanceof Color){
+	    obj.foreground = fg.clone();
+	  } else {
+	    throw new TypeError("Expecting null, string, or Color type.");
+	  }
+	  this.emit("changed", "foreground");
+	}
+      },
+      "background":{
+	get:function(){
+	  return (obj.background === null) ? null : obj.background.clone();
+	},
+	set:function(bg){
+	  if (obj.id === null){throw new Error("Tile Handler Invalid");}
+	  if (bg === null){
+	    obj.background = null;
+	  } else if (typeof(bg) === 'string'){
+	    obj.background = new Color(bg);
+	  } else if (bg instanceof Color){
+	    obj.background = bg.clone();
+	  } else {
+	    throw new TypeError("Expecting null, string, or Color type.");
+	  }
+	  this.emit("changed", "background");
+	}
+      },
+      "tag":{
+	get:function(){
+	  return (obj.tag !== null) ? JSON.parse(JSON.stringify(obj.tag)) : [];
+	}
+      },
+      "tagCount":{
+	get:function(){
+	  return (obj.tag !== null) ? obj.tag.length : 0;
+	}
+      }
+    });
+  };
+  Tileset.Tile.prototype.__proto__ = Emitter.prototype;
+  Tileset.Tile.prototype.constructor = Tileset.Tile;
+
+
+  return Tileset;
   
 });
 

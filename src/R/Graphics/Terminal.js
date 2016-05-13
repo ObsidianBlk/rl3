@@ -259,7 +259,6 @@
 	  cells.push(new Cell(i));
 	}
       }
-
       this.emit("renderResize", [columns, rows], old);
     }).bind(this);
 

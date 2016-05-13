@@ -66,6 +66,9 @@
       }
     }
   }
+
+  // The first 256 glyphs are assumed to be part of Codepage 437
+  // http://dwarffortresswiki.org/index.php/Character_table
   
   function Glyph(){
     Emitter.call(this);

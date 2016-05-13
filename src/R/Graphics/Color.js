@@ -145,6 +145,29 @@
         }
       },
 
+      "json":{
+	get:function(){return JSON.stringify(color);},
+	set:function(jsonstr){
+	  try {
+	    var co = JSON.parse(jsonstr);
+	    if (typeof(co.r) === 'number'){
+	      color.r = clamp(co.r, 0, 255);
+	    }
+	    if (typeof(co.g) === 'number'){
+	      color.g = clamp(co.g, 0, 255);
+	    }
+	    if (typeof(co.b) === 'number'){
+	      color.b = clamp(co.b, 0, 255);
+	    }
+	    if (typeof(co.a) === 'number'){
+	      color.a = clamp(co.a, 0, 255);
+	    }
+	  } catch (e) {
+	    throw new Error("Failed to parse Color from JSON string: " & e.message);
+	  }
+	}
+      },
+
       "object":{
         get:function(){
           return JSON.parse(JSON.stringify(color));

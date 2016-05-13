@@ -62,7 +62,14 @@ requirejs([
 
 
       var cursor = new Cursor(term);
-      var RenderCursorText = function(){
+      var RenderCursorText = function(newres, oldres){
+	cursor.region = {
+	  left: 0,
+	  top: 0,
+	  right: newres[0]-1,
+	  bottom: newres[1]-1
+	};
+
 	cursor.c = 0;
 	cursor.r = 0;
 	cursor.textOut("Hello\n\tWorld!", {foreground:"#FF00FF", background:"#00FF00"});

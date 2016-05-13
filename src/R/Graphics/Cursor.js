@@ -197,7 +197,7 @@
 	    if (_right - _left <= 0){
 	      throw new RangeError();
 	    }
-	    width = _right - _left;
+	    width = (_right - _left)+1;
 
 	    if (_bottom < _top){
 	      tmp = _bottom;
@@ -207,7 +207,7 @@
 	    if (_bottom - _top <= 0){
 	      throw new RangeError();
 	    }
-	    height = _bottom - _top;
+	    height = (_bottom - _top)+1;
 
 	    left = _left;
 	    right = _right;
