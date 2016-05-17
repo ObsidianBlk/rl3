@@ -58,7 +58,7 @@
       throw new Error("Missing required object");
     }
 
-    def(root, "R.Graphics.Terminal", factory(
+    def(root, "R.Map.Tileset", factory(
       root.R.System.Emitter,
       root.R.Graphics.Color
     ));
@@ -129,10 +129,19 @@
   // -------------------------------
 
 
-  function Tileset(){
+  function Tileset(name){
     Emitter.call(this);
 
     var tlist = [];
+
+    Object.defineProperties(this, {
+      "name":{
+	get:function(){return name;}
+      },
+      "tileCount":{
+	get:function(){return tlist.length;}
+      }
+    });
 
     function GetTileInfoObject(id){
       for (var i=0; i < tlist.length; i++){
@@ -176,7 +185,7 @@
 	    tag: null
 	  }
 	};
-	tile.handler = new Tileset.Tile(tile.data);
+	tile.handler = new Tileset.Tile(this, tile.data);
 	// If this is a new tile, confirm all of the required information is present.
 	if (typeof(info.name) !== 'string' || info.name.length <= 0){
           throw new TypeError();
@@ -240,8 +249,16 @@
   Tileset.prototype.__proto__ = Emitter.prototype;
   Tileset.prototype.constructor = Tileset;
 
-  Tileset.Tile = function(obj){
+
+
+
+
+  Tileset.Tile = function(tileset, obj){
     Emitter.call(this);
+
+    if (!(tileset instanceof Tileset)){
+      throw new TypeError("Expected a tileset.");
+    }
 
     this.hasTag = function(tag, ignoreCase){
       if (obj.id === null){throw new Error("Tile Handler Invalid");}
@@ -317,6 +334,9 @@
     Object.defineProperties(this, {
       "valid":{
 	get:function(){return obj.id !== null;}
+      },
+      "tileset":{
+	get:function(){return tileset;}
       },
       "id":{
 	get:function(){return obj.id;}
