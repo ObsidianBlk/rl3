@@ -3,7 +3,7 @@
     /* -------------------------------------------------
        AMD style connection.
        ------------------------------------------------- */
-    define(['src/R/System/Emitter', 'src/R/Graphic/Color'], factory);
+    define(['src/R/System/Emitter', 'src/R/Graphics/Color'], factory);
   } else if (typeof exports === 'object') {
     /* -------------------------------------------------
        CommonJS style connection.
@@ -24,41 +24,18 @@
     /* -------------------------------------------------
        Standard Browser style connection.
        ------------------------------------------------- */
-    var exists = function(r, path){
-      var pos = path.indexOf(".");
-      if (pos < 0){
-	return (typeof(r[path]) !== 'undefined');
-      }
-
-      var spath = path.substr(0, pos);
-      if (typeof(r[spath]) === typeof({})){
-	return exists(r[spath], path.substr(pos+1));
-      }
-      return false;
-    };
-
-    
-    var def = function(r, path, item){
-      var pos = path.indexOf(".");
-      if (pos < 0){
-	r[path] = item;
-      }
-
-      var spath = path.substr(0, pos);
-      if (typeof(r[spath]) !== typeof({})){
-	r[spath] = {};
-      }
-      def (r[spath], path.substr(pos+1), item);
-    };
-
-    if (exists(root, "R.System.Emitter") === false){
-      throw new Error("Missing required object");
+    if (typeof(root.R.Browser) === 'undefined'){
+      throw new Error("Missing R initilization.");
     }
-    if (exists(root, "R.Graphics.Color") === false){
+
+    if (root.R.Browser.exists(root, [
+      "R.System.Emitter",
+      "R.Graphics.Color"
+    ]) === false){
       throw new Error("Missing required object");
     }
 
-    def(root, "R.Map.Tileset", factory(
+    root.R.Browser.def(root, "R.Map.Tileset", factory(
       root.R.System.Emitter,
       root.R.Graphics.Color
     ));

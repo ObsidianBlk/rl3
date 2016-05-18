@@ -24,37 +24,14 @@
     /* -------------------------------------------------
        Standard Browser style connection.
        ------------------------------------------------- */
-    var exists = function(r, path){
-      var pos = path.indexOf(".");
-      if (pos < 0){
-	return (typeof(r[path]) !== 'undefined');
-      }
+    if (typeof(root.R.Browser) === 'undefined'){
+      throw new Error("Missing R initilization.");
+    }
 
-      var spath = path.substr(0, pos);
-      if (typeof(r[spath]) === typeof({})){
-	return exists(r[spath], path.substr(pos+1));
-      }
-      return false;
-    };
-
-    var def = function(r, path, item){
-      var pos = path.indexOf(".");
-      if (pos < 0){
-	r[path] = item;
-      }
-
-      var spath = path.substr(0, pos);
-      if (typeof(r[spath]) !== typeof({})){
-	r[spath] = {};
-      }
-      def (r[spath], path.substr(pos+1), item);
-    };
-
-
-    if (exists(root, "R.System.Emitter") === false){
+    if (root.R.Browser.exists(root, "R.System.Emitter") === false){
       throw new Error("Missing required object");
     }
-    def(root, "R.Graphics.Glyph", factory(root.R.System.Emitter));
+    root.R.Browser.def(root, "R.Graphics.Glyph", factory(root.R.System.Emitter));
   }
 })(this, function (Emitter) {
 

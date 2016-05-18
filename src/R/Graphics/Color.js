@@ -16,20 +16,10 @@
     /* -------------------------------------------------
        Standard Browser style connection.
        ------------------------------------------------- */
-    var def = function(r, path, item){
-      var pos = path.indexOf(".");
-      if (pos < 0){
-	r[path] = item;
-      }
-
-      var spath = path.substr(0, pos);
-      if (typeof(r[spath]) !== typeof({})){
-	r[spath] = {};
-      }
-      def (r[spath], path.substr(pos+1), item);
-    };
-    
-    def(root, "R.Graphics.Color", factory());
+    if (typeof(root.R.Browser) === 'undefined'){
+      throw new Error("Missing R initilization.");
+    }
+    root.R.Browser.def(root, "R.Graphics.Color", factory());
   }
 })(this, function () {
 

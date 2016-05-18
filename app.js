@@ -6,8 +6,10 @@ requirejs([
   'src/R/Graphics/Color',
   'src/R/Graphics/Glyph',
   'src/R/Graphics/Terminal',
-  'src/R/Graphics/Cursor'
-], function(Color, Glyph, Terminal, Cursor){
+  'src/R/Graphics/Cursor',
+  'src/R/Map/Tileset',
+  'src/R/Map/Tilemap'
+], function(Color, Glyph, Terminal, Cursor, Tileset, Tilemap){
 
   // --------------------------------
   // Defining a "Document Ready" function. This is only garanteed to work on Chrome at the moment.
@@ -61,6 +63,42 @@ requirejs([
       });
 
 
+      // --------------------------------------------------------------------
+      // Temporary map setup code.
+
+      var ts = new Tileset("demo");
+      ts.set("floor", {
+        name:"Wood Floor",
+	description: "This is a wood floor you sassy buster you.",
+	primeglyph: parseInt("F0", 16),
+	betaglyph: -1,
+	movability: 1.0,
+	visibility: 1.0,
+	foreground: "#a58740",
+	background: null
+      });
+      ts.set("wall", {
+        name:"Wooden Wall",
+	description: "This is a wooden wall... Sooo grainey",
+	primeglyph: parseInt("DB", 16),
+	betaglyph: -1,
+	movability: 1.0,
+	visibility: 1.0,
+	foreground: "#a58740",
+	background: null
+      });
+
+      var map = new Tilemap();
+      var findex = map.useTile(ts.get("floor"));
+      var windex = map.useTile(ts.get("wall"));
+      map.initialize("map", "map", 200, 200);
+      map.createRoom(0, 0, 15, 15, findex, windex);
+      map.createRoom(14, 5, 10, 3, findex, windex);
+      map.createRoom(23, 0, 10, 30, findex, windex);
+
+      // --------------------------------------------------------------------
+
+
       var cursor = new Cursor(term);
       var RenderCursorText = function(newres, oldres){
 	cursor.region = {
@@ -76,9 +114,28 @@ requirejs([
 	cursor.c = 0;
 	cursor.r = cursor.rows - 1;
 	cursor.textOut("Frames Per Second:");
+
+        var mapinfo = map.getRegionTileInfo(0, 0, 35, 30, false);
+        Object.keys(mapinfo).forEach(function(key){
+          var tile = mapinfo[key].tile;
+          var opts = {};
+          if (tile.foreground !== null){
+            opts.foreground = tile.foreground;
+          }
+          if (tile.background !== null){
+            opts.background = tile.background;
+          }
+          var coordCount = mapinfo[key].coord.length%2;
+          for (var i=0; i < coordCount; i++){
+            cursor.c = mapinfo[key].coord[i*2];
+            cursor.r = mapinfo[key].coord[(i*2)+1] + 4; // The +4 is an explicit shift down.
+            cursor.set(tile.primeglyph, Cursor.WRAP_TYPE_CHARACTER, opts);
+          }
+        });
       };
       term.on("renderResize", RenderCursorText);
       //RenderCursorText();
+
 
       var fpsmonitor = new Monitor(10);
       var lastTime = null;
