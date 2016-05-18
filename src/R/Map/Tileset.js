@@ -367,7 +367,7 @@
       },
       "primeglyph":{
 	get:function(){return obj.primeglyph;},
-	get:function(g){
+	set:function(g){
 	  if (obj.id === null){throw new Error("Tile Handler Invalid");}
 	  if (typeof(g) !== 'number'){
 	    throw new TypeError("Expecting Number Type.");

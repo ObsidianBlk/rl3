@@ -54,7 +54,6 @@
     var height = 0;
     var map = null;
     var tile = null;
-    var defaultTileIndex = 0;
     
     Object.defineProperties(this, {
       "valid":{get:function(){return (width > 0 && height > 0 && map !== null && tile !== null);}},
@@ -77,7 +76,7 @@
 	map = [];
 	for (var i=0; i < w*h; i++){
 	  map.push({
-	    index: defaultTileIndex,
+	    index: -1,
 	    seen: false
 	  });
 	}
@@ -88,7 +87,7 @@
     };
 
 
-    this.useTile = function(t, makeDefault){
+    this.useTile = function(t){
       if (!(t instanceof Tileset.Tile)){
 	throw new TypeError("Expected Tileset.Tile instance.");
       }
@@ -100,16 +99,10 @@
       } else {
 	for (var i=0; i < tile.length; i++){
 	  if (tile[i].id === t.id){
-	    if (makeDefault === true){
-	      defaultTileIndex = i;
-	    }
 	    return i;
 	  }
 	}
 	tile.push(t);
-	if (makeDefault === true){
-	  defaultTileIndex = tile.length - 1;
-	}
 	return tile.length - 1;
       }
 
@@ -218,6 +211,7 @@
       for (var j=y; j < ey; j++){
 	var index = j*width;
 	for (var i=x; i < ex; i++){
+	  if (map[index+i].index < 0){continue;} // This map space has no defined tile. Skip
 	  if (onlySeen === false || (onlySeen === true && map[index+i].seen === true)){
 	    var tindex = map[index+i].index;
 	    var tid = tile[tindex].id;
@@ -266,7 +260,7 @@
       return this;
     };
 
-    this.createRoom = function(x, y, w, h, floortile, walltile, onlyOverwriteDefault){
+    this.createRoom = function(x, y, w, h, floortile, walltile, onlyOverwriteEmpty){
       if (map === null){
 	throw new Error("Map not initialized.");
       }
@@ -285,17 +279,17 @@
         throw new TypeError("Tile expected to be a Tileset.Tile instance or an integer.");
       }
       
-      onlyOverwriteDefault = (onlyOverwriteDefault === true) ? true : false;
+      onlyOverwriteEmpty = (onlyOverwriteEmpty === true) ? true : false;
       if (floortile >= 0 && walltile >= 0 && floortile < tile.length && walltile < tile.length){
         for (var j=y; j < y+h; j++){
           var index = j * width;
           for (var i=x; i < x+w; i++){
             if (i===x || i === (x+w)-1 || j===y || j ===(y+h)-1){
-              if (onlyOverwriteDefault === false || (onlyOverwriteDefault === true && map[index+i].index === defaultTileIndex)){
+              if (onlyOverwriteEmpty === false || (onlyOverwriteEmpty === true && map[index+i].index < 0)){
                 map[index+i].index = walltile;
               }
             } else {
-              if (onlyOverwriteDefault === false || (onlyOverwriteDefault === true && map[index+i].index === defaultTileIndex)){
+              if (onlyOverwriteEmpty === false || (onlyOverwriteEmpty === true && map[index+i].index < 0)){
                 map[index+i].index = floortile;
               }
             }

@@ -19,7 +19,7 @@
     if (typeof(root.R.Browser) === 'undefined'){
       throw new Error("Missing R initilization.");
     }
-    root.R.Browser.def (root, "R.Systems.Emitter", factory());
+    root.R.Browser.def (root, "R.System.Emitter", factory());
   }
 })(this, function () {
 

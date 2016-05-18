@@ -3,13 +3,14 @@ requirejs.config({
   baseUrl:"./"
 });
 requirejs([
+  'src/R/System/Heartbeat',
   'src/R/Graphics/Color',
   'src/R/Graphics/Glyph',
   'src/R/Graphics/Terminal',
   'src/R/Graphics/Cursor',
   'src/R/Map/Tileset',
   'src/R/Map/Tilemap'
-], function(Color, Glyph, Terminal, Cursor, Tileset, Tilemap){
+], function(Heartbeat, Color, Glyph, Terminal, Cursor, Tileset, Tilemap){
 
   // --------------------------------
   // Defining a "Document Ready" function. This is only garanteed to work on Chrome at the moment.
@@ -22,32 +23,6 @@ requirejs([
       });
     }
   }
-
-
-  function Monitor(monitor_size){
-    var size = (monitor_size > 0) ? monitor_size : 60;
-    var frame = 0;
-    var elapsed = 0;
-    var fpssnap = 0;
-
-    Object.defineProperties(this, {
-      "fps":{
-	get:function(){return fpssnap;}
-      }
-    });
-
-    this.add = function(etime){
-      if (frame+1 <= 60){
-	elapsed += etime;
-	frame += 1;
-      } else {
-	fpssnap = Math.floor((frame/(elapsed*0.001)));
-	frame = 1;
-	elapsed = etime;
-      }
-    };
-  };
-  Monitor.prototype.constructor = Monitor;
 
 
   // --------------------------------
@@ -118,6 +93,7 @@ requirejs([
         var mapinfo = map.getRegionTileInfo(0, 0, 35, 30, false);
         Object.keys(mapinfo).forEach(function(key){
           var tile = mapinfo[key].tile;
+	  var gindex = tile.primeglyph;
           var opts = {};
           if (tile.foreground !== null){
             opts.foreground = tile.foreground;
@@ -125,11 +101,12 @@ requirejs([
           if (tile.background !== null){
             opts.background = tile.background;
           }
-          var coordCount = mapinfo[key].coord.length%2;
+	  var coords = mapinfo[key].coord;
+          var coordCount = coords.length/2;
           for (var i=0; i < coordCount; i++){
-            cursor.c = mapinfo[key].coord[i*2];
-            cursor.r = mapinfo[key].coord[(i*2)+1] + 4; // The +4 is an explicit shift down.
-            cursor.set(tile.primeglyph, Cursor.WRAP_TYPE_CHARACTER, opts);
+            cursor.c = coords[i*2];
+            cursor.r = coords[(i*2)+1] + 4; // The +4 is an explicit shift down.
+            cursor.set(gindex, Cursor.WRAP_TYPE_CHARACTER, opts);
           }
         });
       };
@@ -137,33 +114,20 @@ requirejs([
       //RenderCursorText();
 
 
-      var fpsmonitor = new Monitor(10);
-      var lastTime = null;
       var lastDigitSize = 0;
-      var running = true;
-      var heartbeat = function(timestamp){
-	var elapsed = (lastTime === null) ? 0 : timestamp - lastTime;
-	lastTime = timestamp;
-	fpsmonitor.add(elapsed);
-
+      var heartbeat = new Heartbeat(window);
+      heartbeat.setCallback(function(timestamp){
 	if (lastDigitSize > 0){
 	  cursor.clearRegion(19, cursor.rows - 1, lastDigitSize, 1);
 	}
 	cursor.c = 19;
 	cursor.r = cursor.rows - 1;
-	cursor.textOut(fpsmonitor.fps.toString());
-	lastDigitSize = fpsmonitor.fps.toString().length;
+	cursor.textOut(heartbeat.beatsPerSecond.toString());
+	lastDigitSize = heartbeat.beatsPerSecond.toString().length;
 
 	term.flip();
-
-	if (running){
-	  // Keep revving the pig...
-	  window.requestAnimationFrame(heartbeat);
-	}
-      };
-
-      // This kicks the pig into gear!
-      window.requestAnimationFrame(heartbeat);
+      });
+      heartbeat.start();
     });
 
     glyph.on("error", function(){
