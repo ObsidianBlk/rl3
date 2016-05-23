@@ -68,6 +68,42 @@
   }
   Entity.prototype.constructor = Entity;
 
+  function ObjToObjValueCopy(dst, src){
+    // Function assumes dst and src are both Object instances.
+    // NOTE: NO value can be set to NULL!
+    for (var key in dst){
+      var keytype = typeof(dst[key]);
+      if (src.hasOwnProperty(key) === true && src[key] !== null){
+	if (typeof(dst[key]) === typeof(src[key])){
+	  if (keytype === typeof({})) {
+	    ObjToObjValueCopy(dst[key], src[key]);
+	  } else if (keytype === typeof([])){
+	    dst[key] = JSON.parse(JSON.stringify(src[key]));
+	  } else if (keytype === 'number' || keytype === 'string' || keytype === 'boolean'){
+	    dst[key] = src[key];
+	  }
+	}
+      }
+    }
+  }
+
+  Entity.setValues = function(e, vdata){
+    if (!(e instanceof Entity)){
+      throw new TypeError("Operation requires an Entity object instance.");
+    }
+    if (typeof(vdata) !== typeof({})){
+      throw new TypeError("Argument <vdata> expected to be an Object instance.");
+    }
+
+    for (var key in e){
+      if (key !== "id" && key !== "type" && key !== "valid"){
+	if (vdata.hasOwnProperty(key) && typeof(vdata[key]) === typeof({})){
+	  ObjToObjValueCopy(e[key], vdata[key]);
+	}
+      }
+    }
+  };
+
   // TODO: Not sure if this is the best way to manage the database.
   //   Especially the serialization.
   Entity.exists = function(id){

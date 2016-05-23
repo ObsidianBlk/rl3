@@ -206,6 +206,10 @@
       prng.seed(this.generateUUID());
       return prng;
     };
+
+    // -------------------------------------
+    // Initialization!
+    this.seed();
   }
   PRng.prototype.constructor = PRng;
 

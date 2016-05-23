@@ -9,8 +9,11 @@ requirejs([
   'src/R/Graphics/Terminal',
   'src/R/Graphics/Cursor',
   'src/R/Map/Tileset',
-  'src/R/Map/Tilemap'
-], function(Heartbeat, Color, Glyph, Terminal, Cursor, Tileset, Tilemap){
+  'src/R/Map/Tilemap',
+  'src/R/ECS/Entity',
+  'src/R/ECS/ComponentDB',
+  'src/R/ECS/Assembler'
+], function(Heartbeat, Color, Glyph, Terminal, Cursor, Tileset, Tilemap, Entity, ComponentDB, Assembler){
 
   // --------------------------------
   // Defining a "Document Ready" function. This is only garanteed to work on Chrome at the moment.
@@ -72,6 +75,19 @@ requirejs([
       map.createRoom(23, 0, 10, 30, findex, windex);
 
       // --------------------------------------------------------------------
+      /* Temporary ECS Test code
+
+      var assembler = new Assembler();
+      var cdb = assembler.db;
+
+      cdb.defineComponent("position", {x:0, y:0});
+      cdb.defineComponent("demographic", {race:"human", gender:"male"});
+      cdb.defineComponent("viz", {primeglyph:1, betaglyph:2});
+
+      assembler.defineAssemblage("creature");
+
+      // --------------------------------------------------------------------
+      */
 
 
       var cursor = new Cursor(term);
