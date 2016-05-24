@@ -93,10 +93,6 @@
     };
 
     Object.defineProperties(this, {
-      "seed":{
-	get:function(){return prng_state.seed;}
-      },
-
       "state":{
 	get:function(){return JSON.parse(JSON.stringify(prng_state));},
 	set:function(state){
@@ -124,8 +120,11 @@
     });
 
     this.seed = function(value){
-      prng_state.seed = GetSeedString(value);
-      InitState(prng_state);
+      if (typeof(value) !== 'undefined' || prng_state.seed === ""){
+	prng_state.seed = GetSeedString(value);
+	InitState(prng_state);
+      }
+      return prng_state.seed;
     };
 
     /**

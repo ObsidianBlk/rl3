@@ -75,7 +75,7 @@ requirejs([
       map.createRoom(23, 0, 10, 30, findex, windex);
 
       // --------------------------------------------------------------------
-      /* Temporary ECS Test code
+      // Temporary ECS Test code
 
       var assembler = new Assembler();
       var cdb = assembler.db;
@@ -84,10 +84,17 @@ requirejs([
       cdb.defineComponent("demographic", {race:"human", gender:"male"});
       cdb.defineComponent("viz", {primeglyph:1, betaglyph:2});
 
-      assembler.defineAssemblage("creature");
+      assembler.defineAssemblage("creature", "human", "position,demographic,viz");
+      assembler.defineAssemblage("creature", "elf", [
+	{name:"position"},
+	{name:"demographic", idata:{race:"elf"}},
+	{name:"viz", idata:{primeglyph:2, betaglyph:1}}
+      ]);
+
+      var human = assembler.createEntity("creature", "human");
+      var elf = assembler.createEntity("creature", "elf");
 
       // --------------------------------------------------------------------
-      */
 
 
       var cursor = new Cursor(term);

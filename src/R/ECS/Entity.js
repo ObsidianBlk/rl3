@@ -97,18 +97,15 @@
 
     for (var key in e){
       if (key !== "id" && key !== "type" && key !== "valid"){
-	if (vdata.hasOwnProperty(key) && typeof(vdata[key]) === typeof({})){
+	if (vdata.hasOwnProperty(key) && vdata[key] !== null && typeof(vdata[key]) === typeof({})){
 	  ObjToObjValueCopy(e[key], vdata[key]);
 	}
       }
     }
   };
 
-  // TODO: Not sure if this is the best way to manage the database.
-  //   Especially the serialization.
   Entity.exists = function(id){
-    var keys = Object.keys(EntityDB);
-    for (var key in keys){
+    for (var key in EntityDB){
       if (id in EntityDB[key]){
 	return true;
       }

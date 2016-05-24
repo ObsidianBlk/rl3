@@ -134,13 +134,14 @@
       if (type in assemblage){
 	if (name in assemblage[type]){
 	  e = new Entity(prng.generateUUID(), type);
-	  var component = Object.keys(assemblage[type]);
-	  for (var i=0; i < component.length; i++){
-	    var cname = component[i];
-	    db.addToEntity(e, cname);
-	    if (assemblage[type][cname] !== null){
-	      Entity.setValues(e, assemblage[type][cname]);
+	  var compdef = assemblage[type][name];
+	  if (compdef !== null){
+	    var component = Object.keys(compdef);
+	    for (var i=0; i < component.length; i++){
+	      var cname = component[i];
+	      db.addToEntity(e, cname);
 	    }
+	    Entity.setValues(e, compdef);
 	  }
 	}
       }
