@@ -4,6 +4,7 @@ requirejs.config({
 });
 requirejs([
   'src/R/System/Heartbeat',
+  'src/R/Input/Keyboard',
   'src/R/Graphics/Color',
   'src/R/Graphics/Glyph',
   'src/R/Graphics/Terminal',
@@ -13,7 +14,7 @@ requirejs([
   'src/R/ECS/Entity',
   'src/R/ECS/ComponentDB',
   'src/R/ECS/Assembler'
-], function(Heartbeat, Color, Glyph, Terminal, Cursor, Tileset, Tilemap, Entity, ComponentDB, Assembler){
+], function(Heartbeat, Keyboard, Color, Glyph, Terminal, Cursor, Tileset, Tilemap, Entity, ComponentDB, Assembler){
 
   // --------------------------------
   // Defining a "Document Ready" function. This is only garanteed to work on Chrome at the moment.
@@ -31,6 +32,52 @@ requirejs([
   // --------------------------------
   // App starts here :)
   ready(function(){
+    // --------------------------------------------------------------------
+    // Temporary Keyboard input test code!
+    var kinput = new Keyboard(window);
+    kinput.on("keydown", function(code){
+      var key = Keyboard.CodeToKeyName(code);
+      console.log("[keydown]: <" + ((key !== "") ? key : "UNKNOWN") + ">");
+    });
+
+    kinput.on("keyup", function(code){
+      var key = Keyboard.CodeToKeyName(code);
+      console.log("[keyup]: <" + ((key !== "") ? key : "UNKNOWN") + ">");
+    });
+
+    kinput.on("comboon", function(comboName){
+      console.log("[comboon]: " + comboName);
+    });
+
+    kinput.on("combooff", function(comboName){
+      console.log("[combooff]: " + comboName);
+    });
+
+    kinput.onCombo("A", {
+      on:function(){
+	console.log("[SPECIAL ON] - Shift-A");
+      },
+      off:function(){
+	console.log("[SPECIAL OFF] - Shift-A");
+      }
+    });
+
+    kinput.onCombo("ctrl+B", {
+      on:function(){
+	console.log("[SUPER SPECIAL ON] - CTRL-SHIFT-B");
+      },
+      off:function(){
+	console.log("[SUPER SPECIAL OFF] - CTRL-SHIFT-B");
+      }
+    });
+
+    kinput.rollOffCombos = true;
+    kinput.notifyKeysOnce = true;
+
+    // --------------------------------------------------------------------
+
+
+
     var glyph = new Glyph();
     glyph.on("ready", function(){
       var term = new Terminal(document.getElementById("terminal"), {
