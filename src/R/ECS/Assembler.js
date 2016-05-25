@@ -125,6 +125,7 @@
 
       if (asm !== null && Object.keys(asm).length > 0){
 	assemblage[type][name] = asm;
+        return true;
       }
       return false;
     };

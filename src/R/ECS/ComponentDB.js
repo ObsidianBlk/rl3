@@ -29,6 +29,7 @@
   }
 })(this, function (Entity) {
 
+  
 
   function ComponentDB(){
     var definition = {};
@@ -113,7 +114,7 @@
       e[name] = JSON.parse(JSON.stringify(definition[name].obj));
       var init = definition[name].init;
       if (init !== null){
-	init.apply(init, [].slice.call(arguments,2));
+	init.apply(init, [e].concat([].slice.call(arguments,2)));
       }
     };
 
