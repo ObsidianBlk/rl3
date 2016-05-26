@@ -78,10 +78,7 @@
 	  throw new TypeError("Component needs to be an Object instance type.");
 	}
 
-	var def = {
-	  obj: {},
-	  init: null
-	};
+	var def = {};
 
 	for (var key in compobj){
 	  var keytype = typeof(compobj[key]);
@@ -89,11 +86,7 @@
 	  var deepCopy = (isnull === false && (compobj[key] instanceof Array || compobj[key] instanceof Object));
 
 	  if (keytype === 'function'){
-	    if (key === "_init"){
-	      def.init = compobj[key];
-	    } else {
-	      throw new Error("Component object may only contains an \"_init()\" function.");
-	    }
+	    throw new Error("Illegal function. Component must be a pure data object.");
 	  } else if (isnull || keytype === 'number' || keytype === 'string' || keytype === 'boolean') {
 	    def.obj[key] = compobj[key];
 	  } else if (deepCopy === true){
@@ -111,11 +104,7 @@
       if (!(name in definition)){
 	throw new Error("Undefined component name \"" + name + "\".");
       }
-      e[name] = JSON.parse(JSON.stringify(definition[name].obj));
-      var init = definition[name].init;
-      if (init !== null){
-	init.apply(init, [e].concat([].slice.call(arguments,2)));
-      }
+      e[name] = JSON.parse(JSON.stringify(definition[name]));
     };
 
     this.removeFromEntity = function(e, name){

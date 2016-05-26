@@ -1,0 +1,15 @@
+
+{
+  "graphics":{
+    "glyphset":"data/glyphs/10x10/RogueObsidian_10x10.png",
+    "fullscreen":false
+  },
+
+  "audio":{
+
+  },
+
+  "gameplay":{
+
+  }
+}
