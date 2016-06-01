@@ -7,8 +7,7 @@
       'src/Game/FSM',
       'src/R/Graphics/Terminal',
       'src/R/Graphics/Cursor',
-      'src/R/Input/Keyboard',
-      'src/R/Map/Tilemap'
+      'src/R/Input/Keyboard'
     ], factory);
   } else if (typeof exports === 'object') {
     /* -------------------------------------------------
@@ -19,8 +18,7 @@
 	require('src/Game/FSM'),
 	require('src/R/Graphics/Terminal'),
 	require('src/R/Graphics/Cursor'),
-	require('src/R/Input/Keyboard'),
-        require('src/R/Map/Tilemap')
+	require('src/R/Input/Keyboard')
       );
     }
   } else {
@@ -41,27 +39,27 @@
 	root.FSM,
 	root.R.Graphics.Terminal,
 	root.R.Graphics.Cursor,
-	root.R.Input.Keyboard,
-        root.R.Map.Tilemap
+	root.R.Input.Keyboard
       );
     }
   }
-})(this, function (FSM, Terminal, Cursor, Keyboard, Tilemap) {
+})(this, function (FSM, Terminal, Cursor, Keyboard) {
 
-  function GameState(terminal, keyboard, map, fsm, setActive){
+  function MainMenuState(terminal, keyboard, fsm, setActive){
     if (!(terminal instanceof Terminal)){
       throw new TypeError("Argument <terminal> expected to be a Terminal instance.");
     }
     if (!(keyboard instanceof Keyboard)){
       throw new TypeError("Argument <keyboard> expected to be a Keyboard instance.");
     }
-    if (!(map instanceof Tilemap)){
-      throw new TypeError("Argument <map> expected to be a Tilemap instance.");
-    }
 
     var focus = false;
     var cursor = null;
 
+    var update = false;
+    var menuItem = 0;
+
+    var self = this;
     function onRenderResize(newres, oldres){
       cursor.region = {
 	left: 0,
@@ -70,35 +68,33 @@
 	bottom: newres[1]-1
       };
 
-      cursor.c = 0;
-      cursor.r = cursor.rows - 1;
-      cursor.textOut("Frames Per Second:");
-
-      cursor.c = 0;
-      cursor.r = 0;
-      var mapinfo = map.getRegionTileInfo(0, 0, 35, 30, false);
-      Object.keys(mapinfo).forEach(function(key){
-        var tile = mapinfo[key].tile;
-	var gindex = tile.primeglyph;
-        var opts = {};
-        if (tile.foreground !== null){
-          opts.foreground = tile.foreground;
-        }
-        if (tile.background !== null){
-          opts.background = tile.background;
-        }
-	var coords = mapinfo[key].coord;
-        var coordCount = coords.length/2;
-        for (var i=0; i < coordCount; i++){
-          cursor.c = coords[i*2];
-          cursor.r = coords[(i*2)+1] + 4; // The +4 is an explicit shift down.
-          cursor.set(gindex, Cursor.WRAP_TYPE_CHARACTER, opts);
-        }
-      });
+      update = true;
+      self.update();
     }
 
     function onExitCombo(){
-      fsm.removeState("GameState");
+      fsm.removeStates();
+    }
+
+    function onKeyDown(key){
+      var keyName = Keyboard.CodeToKeyName(key);
+      if (keyName === "up" || keyName === "w" || keyName === "left" || keyName === "a"){
+	menuItem -= (menuItem > 0) ? 1 : 0;
+	update = true;
+      }
+
+      if (keyName === "down" || keyName === "s" || keyName === "right" || keyName === "d"){
+	menuItem += (menuItem < 2) ? 1 : 0;
+	update = true;
+      }
+
+      if (keyName === "enter"){
+	if (menuItem === 0){
+	  fsm.setActive("GameState");
+	} else if (menuItem === 2){
+	  fsm.removeStates();
+	}
+      }
     }
 
     this.enter = function(){
@@ -107,6 +103,7 @@
 
     this.getFocus = function(){
       terminal.on("renderResize", onRenderResize);
+      keyboard.on("keydown", onKeyDown);
       keyboard.onCombo("ctrl+shift+esc", onExitCombo);
       onRenderResize([terminal.columns, terminal.rows], null);
       focus = true;
@@ -114,6 +111,7 @@
 
     this.looseFocus = function(){
       terminal.unlisten("renderResize", onRenderResize);
+      keyboard.unlisten("keydown", onKeyDown);
       keyboard.unlistenCombo("ctrl+shift+esc", onExitCombo);
       focus = false;
     };
@@ -126,22 +124,57 @@
     var lastDigitSize = 0;
     this.update = function(timestamp, fps){
       if (focus === true){
-	if (lastDigitSize > 0){
-	  cursor.clearRegion(19, cursor.rows - 1, lastDigitSize, 1);
+	if (update === true){
+	  update = false;
+
+	  cursor.c = 0;
+	  cursor.r = 0;
+	  cursor.textOut("Roguelike Demo - Main Menu");
+
+	  cursor.c = 0;
+	  cursor.r = 1;
+	  if (menuItem === 0){
+	    cursor.textOut("Play", {foreground:"#FFFF00"});
+	  } else {
+	    cursor.textOut("Play");
+	  }
+
+	  cursor.c = 0;
+	  cursor.r = 2;
+	  if (menuItem === 1){
+	    cursor.textOut("Options", {foreground:"#FFFF00"});
+	  } else {
+	    cursor.textOut("Options");
+	  }
+
+	  cursor.c = 0;
+	  cursor.r = 3;
+	  if (menuItem === 2){
+	    cursor.textOut("Quit", {foreground:"#FFFF00"});
+	  } else {
+	    cursor.textOut("Quit");
+	  }
 	}
-	cursor.c = 19;
-	cursor.r = cursor.rows - 1;
-	cursor.textOut(fps.toString());
-	lastDigitSize = fps.toString().length;
+
+	if (typeof(fps) === 'number'){
+	  if (lastDigitSize > 0){
+	    cursor.clearRegion(19, cursor.rows - 1, lastDigitSize, 1);
+	  }
+	  cursor.c = 19;
+	  cursor.r = cursor.rows - 1;
+	  cursor.textOut(fps.toString());
+	  lastDigitSize = fps.toString().length;
+	}
       }
     };
 
 
-    FSM.State.call(this, "GameState", fsm, setActive);
+    FSM.State.call(this, "MainMenuState", fsm, setActive);
   }
-  GameState.prototype.__proto__ = FSM.State.prototype;
-  GameState.prototype.constructor = GameState;
+  MainMenuState.prototype.__proto__ = FSM.State.prototype;
+  MainMenuState.prototype.constructor = MainMenuState;
 
 
-  return GameState;
+  return MainMenuState;
+
 });

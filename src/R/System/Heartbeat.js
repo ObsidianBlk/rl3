@@ -43,7 +43,8 @@
     var BPSMonitorLength = 10; // Number of frames to track.
     var BPS = 0;
 
-    var Callback = null;
+    var heartbeatCallback = null;
+    var stopCallback = null;
     var Running = false;
 
     function UpdateBPS(timestamp){
@@ -65,18 +66,27 @@
 
     function HeartbeatFunc(timestamp){
       UpdateBPS(timestamp);
-      if (Callback !== null){
-	Callback.call(Callback, timestamp);
+      if (heartbeatCallback !== null){
+	heartbeatCallback.call(heartbeatCallback, timestamp);
       }
       if (Running){
 	// Keep revving the pig...
 	win.requestAnimationFrame(HeartbeatFunc);
+      } else if (stopCallback !== null){
+	stopCallback.call(stopCallback);
       }
     }
 
-    this.setCallback = function(cb){
-      if (typeof(cb) === 'function' || cb === null){
-	Callback = cb;
+    this.setCallbacks = function(callbacks){
+      if (typeof(callbacks.heartbeat) !== 'undefined'){
+	if (typeof(callbacks.heartbeat) === 'function' || callbacks.heartbeat === null){
+	  heartbeatCallback = callbacks.heartbeat;
+	}
+      }
+      if (typeof(callbacks.stop) !== 'undefined'){
+	if (typeof(callbacks.stop) === 'function' || callbacks.stop === null){
+	  stopCallback = callbacks.stop;
+	}
       }
     };
 

@@ -72,7 +72,7 @@
 	var e = event[eventName];
 	for (var i=0; i < e.length; i++){
 	  if (e[i].callback === callback){
-	    e[i].splice(i, 1);
+	    e.splice(i, 1);
 	    break;
 	  }
 	}

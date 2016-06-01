@@ -39,25 +39,25 @@
 	get:function(){return Object.keys(registeredStates);}
       }
     });
+
+
     
-    this.registerState = function(name, state, setActive){
+    /** 
+     * Registers a given <state> to the Finite-State-Machine. If <setActive> is true, the given <state> is set as the active state.
+     *  
+     * @param {FSM.State} The state being registered
+     * @param {boolean} [OPTIONAL] sets the state as the active state if true.
+     * @exeption {TypeError}
+     * @exeption {Error}
+     */ 
+    this.registerState = function(state, setActive){
       if (!(state instanceof FSM.State)){
 	throw new TypeError("Argument <state> expected to be a FSM.State instance.");
       }
-      if (typeof(name) !== 'string'){
-	throw new TypeError("Argument <name> expected to be a string.");
-      }
-      if (name.length <= 0){
-	throw new Error("Argument <name> cannot be a zero-length string.");
-      }
 
+      var name = state.name;
       if (name in registeredStates){
-	throw new Error("Given name is already registered to a state.");
-      }
-      for (var key in registeredStates){
-	if (registeredStates[key] === state){
-	  throw new Error("Given state is already registered as '" + key +"'.");
-	}
+	throw new Error("Given state has already been registered.");
       }
 
       if (state.parent === null){
@@ -191,7 +191,7 @@
 
 
     if (FSMParent !== null){
-      FSMParent.registerState(name, this, setActive);
+      FSMParent.registerState(this, setActive);
     }
 
   };

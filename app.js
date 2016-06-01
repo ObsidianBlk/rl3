@@ -15,8 +15,9 @@ requirejs([
   'src/R/ECS/ComponentDB',
   'src/R/ECS/Assembler',
   'src/Game/FSM',
-  'src/Game/States/GameState'
-], function(Heartbeat, Keyboard, Color, Glyph, Terminal, Cursor, Tileset, Tilemap, Entity, ComponentDB, Assembler, FSM, GameState){
+  'src/Game/States/GameState',
+  'src/Game/States/MainMenuState'
+], function(Heartbeat, Keyboard, Color, Glyph, Terminal, Cursor, Tileset, Tilemap, Entity, ComponentDB, Assembler, FSM, GameState, MainMenuState){
 
   // --------------------------------
   // Defining a "Document Ready" function. This is only garanteed to work on Chrome at the moment.
@@ -145,63 +146,29 @@ requirejs([
 
       // --------------------------------------------------------------------
 
-
-      /*var cursor = new Cursor(term);
-      var RenderCursorText = function(newres, oldres){
-	cursor.region = {
-	  left: 0,
-	  top: 0,
-	  right: newres[0]-1,
-	  bottom: newres[1]-1
-	};
-
-	cursor.c = 0;
-	cursor.r = 0;
-	cursor.textOut("Hello\n\tWorld!", {foreground:"#FF00FF", background:"#00FF00"});
-	cursor.c = 0;
-	cursor.r = cursor.rows - 1;
-	cursor.textOut("Frames Per Second:");
-
-        var mapinfo = map.getRegionTileInfo(0, 0, 35, 30, false);
-        Object.keys(mapinfo).forEach(function(key){
-          var tile = mapinfo[key].tile;
-	  var gindex = tile.primeglyph;
-          var opts = {};
-          if (tile.foreground !== null){
-            opts.foreground = tile.foreground;
-          }
-          if (tile.background !== null){
-            opts.background = tile.background;
-          }
-	  var coords = mapinfo[key].coord;
-          var coordCount = coords.length/2;
-          for (var i=0; i < coordCount; i++){
-            cursor.c = coords[i*2];
-            cursor.r = coords[(i*2)+1] + 4; // The +4 is an explicit shift down.
-            cursor.set(gindex, Cursor.WRAP_TYPE_CHARACTER, opts);
-          }
-        });
-      };
-      term.on("renderResize", RenderCursorText);*/
-      //RenderCursorText();
-
       var fsm = new FSM();
+      //new MainMenuState(term, kinput, fsm, true);
       new GameState(term, kinput, map, fsm, true);
 
 
       var lastDigitSize = 0;
       var heartbeat = new Heartbeat(window);
-      heartbeat.setCallback(function(timestamp){
-	/*if (lastDigitSize > 0){
-	  cursor.clearRegion(19, cursor.rows - 1, lastDigitSize, 1);
+      heartbeat.setCallbacks({
+	heartbeat:function(timestamp){
+	  if (fsm.registeredStateCount <= 0){
+	    heartbeat.stop();
+	  } else {
+	    fsm.update(timestamp, heartbeat.beatsPerSecond);
+	    term.flip();
+	  }
+	},
+
+	stop:function(){
+	  if (typeof(require) === 'function'){
+	    // Assume we exist in a NodeJS-Webkit world...
+	    require('nw.gui').App.quit();
+	  }
 	}
-	cursor.c = 19;
-	cursor.r = cursor.rows - 1;
-	cursor.textOut(heartbeat.beatsPerSecond.toString());
-	lastDigitSize = heartbeat.beatsPerSecond.toString().length;*/
-        fsm.update(timestamp, heartbeat.beatsPerSecond);
-        
-	term.flip();
       });
       heartbeat.start();
     });
