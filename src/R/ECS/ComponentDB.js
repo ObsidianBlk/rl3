@@ -88,9 +88,9 @@
 	  if (keytype === 'function'){
 	    throw new Error("Illegal function. Component must be a pure data object.");
 	  } else if (isnull || keytype === 'number' || keytype === 'string' || keytype === 'boolean') {
-	    def.obj[key] = compobj[key];
+	    def[key] = compobj[key];
 	  } else if (deepCopy === true){
-	    def.obj[key] = JSON.parse(JSON.stringify(compobj[key]));
+	    def[key] = JSON.parse(JSON.stringify(compobj[key]));
 	  }
 	}
 	definition[name] = def;

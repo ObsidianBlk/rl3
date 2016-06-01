@@ -59,6 +59,12 @@
 	  throw new Error("Given state is already registered as '" + key +"'.");
 	}
       }
+
+      if (state.parent === null){
+        state.parent = this;
+      } else if (state.parent !== this){
+        throw new Error("State registered to another FSM instance.");
+      }
       
       state.enter();
       registeredStates[name] = state;
@@ -104,7 +110,7 @@
 	throw new TypeError("Argument <name> expected to be a string.");
       }
 
-      if (name in registeredStates){
+      if (name in registeredStates && activeState !== name){
 	if (activeState !== null){
 	  registeredStates[activeState].looseFocus();
 	}
@@ -167,11 +173,21 @@
     });
 
 
-    this.enter = function(){};
-    this.getFocus = function(){};
-    this.looseFocus = function(){};
-    this.exit = function(){};
-    this.update = function(){};
+    if (typeof(this.enter) !== 'function'){
+      this.enter = function(){};
+    }
+    if (typeof(this.getFocus) !== 'function'){
+      this.getFocus = function(){};
+    }
+    if (typeof(this.looseFocus) !== 'function'){
+      this.looseFocus = function(){};
+    }
+    if (typeof(this.exit) !== 'function'){
+      this.exit = function(){};
+    }
+    if (typeof(this.update) !== 'function'){
+      this.update = function(){};
+    }
 
 
     if (FSMParent !== null){

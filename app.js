@@ -13,8 +13,10 @@ requirejs([
   'src/R/Map/Tilemap',
   'src/R/ECS/Entity',
   'src/R/ECS/ComponentDB',
-  'src/R/ECS/Assembler'
-], function(Heartbeat, Keyboard, Color, Glyph, Terminal, Cursor, Tileset, Tilemap, Entity, ComponentDB, Assembler){
+  'src/R/ECS/Assembler',
+  'src/Game/FSM',
+  'src/Game/States/GameState'
+], function(Heartbeat, Keyboard, Color, Glyph, Terminal, Cursor, Tileset, Tilemap, Entity, ComponentDB, Assembler, FSM, GameState){
 
   // --------------------------------
   // Defining a "Document Ready" function. This is only garanteed to work on Chrome at the moment.
@@ -35,7 +37,7 @@ requirejs([
     // --------------------------------------------------------------------
     // Temporary Keyboard input test code!
     var kinput = new Keyboard(window);
-    kinput.on("keydown", function(code){
+/*    kinput.on("keydown", function(code){
       var key = Keyboard.CodeToKeyName(code);
       console.log("[keydown]: <" + ((key !== "") ? key : "UNKNOWN") + ">");
     });
@@ -69,7 +71,7 @@ requirejs([
       off:function(){
 	console.log("[SUPER SPECIAL OFF] - CTRL-SHIFT-B");
       }
-    });
+    });*/
 
     kinput.rollOffCombos = true;
     kinput.notifyKeysOnce = true;
@@ -144,7 +146,7 @@ requirejs([
       // --------------------------------------------------------------------
 
 
-      var cursor = new Cursor(term);
+      /*var cursor = new Cursor(term);
       var RenderCursorText = function(newres, oldres){
 	cursor.region = {
 	  left: 0,
@@ -180,21 +182,25 @@ requirejs([
           }
         });
       };
-      term.on("renderResize", RenderCursorText);
+      term.on("renderResize", RenderCursorText);*/
       //RenderCursorText();
+
+      var fsm = new FSM();
+      new GameState(term, kinput, map, fsm, true);
 
 
       var lastDigitSize = 0;
       var heartbeat = new Heartbeat(window);
       heartbeat.setCallback(function(timestamp){
-	if (lastDigitSize > 0){
+	/*if (lastDigitSize > 0){
 	  cursor.clearRegion(19, cursor.rows - 1, lastDigitSize, 1);
 	}
 	cursor.c = 19;
 	cursor.r = cursor.rows - 1;
 	cursor.textOut(heartbeat.beatsPerSecond.toString());
-	lastDigitSize = heartbeat.beatsPerSecond.toString().length;
-
+	lastDigitSize = heartbeat.beatsPerSecond.toString().length;*/
+        fsm.update(timestamp, heartbeat.beatsPerSecond);
+        
 	term.flip();
       });
       heartbeat.start();
@@ -204,7 +210,7 @@ requirejs([
       alert("You're an idiot!");
     });
 
-    glyph.load("data/graphics/10x10/RogueObsidian_10x10.png", {
+    glyph.load("data/glyphs/10x10/RogueObsidian_10x10.png", {
       cell_width: 10,
       cell_height: 10
     });
