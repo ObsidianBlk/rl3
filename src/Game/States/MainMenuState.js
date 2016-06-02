@@ -90,7 +90,7 @@
 
       if (keyName === "enter"){
 	if (menuItem === 0){
-	  fsm.setActive("GameState");
+	  fsm.activateState("GameState");
 	} else if (menuItem === 2){
 	  fsm.removeStates();
 	}
@@ -136,7 +136,7 @@
 	  if (menuItem === 0){
 	    cursor.textOut("Play", {foreground:"#FFFF00"});
 	  } else {
-	    cursor.textOut("Play");
+	    cursor.textOut("Play", {foreground:null});
 	  }
 
 	  cursor.c = 0;
@@ -144,7 +144,7 @@
 	  if (menuItem === 1){
 	    cursor.textOut("Options", {foreground:"#FFFF00"});
 	  } else {
-	    cursor.textOut("Options");
+	    cursor.textOut("Options", {foreground:null});
 	  }
 
 	  cursor.c = 0;
@@ -152,11 +152,11 @@
 	  if (menuItem === 2){
 	    cursor.textOut("Quit", {foreground:"#FFFF00"});
 	  } else {
-	    cursor.textOut("Quit");
+	    cursor.textOut("Quit", {foreground:null});
 	  }
 	}
 
-	if (typeof(fps) === 'number'){
+	/*if (typeof(fps) === 'number'){
 	  if (lastDigitSize > 0){
 	    cursor.clearRegion(19, cursor.rows - 1, lastDigitSize, 1);
 	  }
@@ -164,7 +164,7 @@
 	  cursor.r = cursor.rows - 1;
 	  cursor.textOut(fps.toString());
 	  lastDigitSize = fps.toString().length;
-	}
+	}*/
       }
     };
 

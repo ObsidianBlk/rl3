@@ -147,8 +147,8 @@ requirejs([
       // --------------------------------------------------------------------
 
       var fsm = new FSM();
-      //new MainMenuState(term, kinput, fsm, true);
-      new GameState(term, kinput, map, fsm, true);
+      new MainMenuState(term, kinput, fsm, true);
+      new GameState(term, kinput, map, fsm);
 
 
       var lastDigitSize = 0;

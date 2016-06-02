@@ -299,6 +299,10 @@
       });
     };
 
+    this.eq = function(c){
+      c = (!(c instanceof Color)) ? new Color(c) : c;
+      return (c.r === color.r && c.g === color.g && c.b === color.b && c.a === color.a);
+    };
 
     // Now that everything is setup, we finally set to the s_or_o passed in :)
     if (typeof(s_or_o) !== 'undefined' && s_or_o !== null){

@@ -72,7 +72,9 @@
 
     this.set = function(g, options){
       options = (typeof(options) === typeof({})) ? options : {};
-      this.glyph = g;
+      if (this.glyph !== g){
+	this.glyph = g;
+      }
       if (typeof(options.background) !== 'undefined'){
 	this.background = options.background;
       }
@@ -123,17 +125,36 @@
       "foreground":{
 	get:function(){return (foreground !== null) ? new Color(foreground) : null;},
 	set:function(fg){
-	  // NOTE: I don't bother checking for type. Color will deal with that.
-	  foreground = (fg !== null) ? new Color(fg) : null;
-	  dirty = true;
+	  if (foreground !== fg){
+	    var c = null;
+	    if (fg !== null){
+	      c = new Color(fg);
+	      if (foreground !== null && foreground.eq(c) === true){ // old foreground matches new color... so... no change.
+		return;
+	      }
+	    }
+
+	    foreground = c;
+	    dirty = true;
+	  }
 	}
       },
 
       "background":{
 	get:function(){return (background !== null) ? new Color(background) : null;},
 	set:function(bg){
-	  background = (bg !== null) ? new Color(bg) : null;
-	  dirty = true;
+	  if (background !== bg){
+	    var c = null;
+	    if (bg !== null){
+	      c = new Color(bg);
+	      if (background !== null && background.eq(c) === true){ // old background matches new color... so... no change.
+		return;
+	      }
+	    }
+
+	    background = c;
+	    dirty = true;
+	  }
 	}
       },
 
@@ -337,9 +358,9 @@
 	    if (cells[index].glyphCode !== null){
 	      DropSubGlyph(cells[index].glyphCode);
 	    }
-	    var sg = GetSubGlyph(code);
-	    cells[index].set(sg, options);
 	  }
+	  var sg = GetSubGlyph(code);
+	  cells[index].set(sg, options);
 	}
       }
     };

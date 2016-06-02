@@ -31,8 +31,8 @@
     this.listening = function(eventName, callback){
       var e = (typeof(event[eventName]) !== 'undefined') ? event[eventName] : null;
       if (e !== null){
-	for (var i=0; i < e.listener.length; i++){
-	  if (e.listener[i].callback === callback){
+	for (var i=0; i < e.length; i++){
+	  if (e[i].callback === callback){
 	    return true;
 	  }
 	}

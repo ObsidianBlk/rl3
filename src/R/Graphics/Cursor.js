@@ -84,6 +84,26 @@
       return true;
     }).bind(this);
 
+    function ExtractGlyphOptions(options){
+      var outop = {};
+      if (typeof(options.foreground) !== 'undefined'){
+	if (typeof(options.foreground) === 'string' || options.foreground instanceof Color){
+	  outop.foreground = new Color(options.foreground);
+	} else if (options.foreground === null){
+	  outop.foreground = null;
+	}
+      }
+      if (typeof(options.background) !== 'undefined'){
+	if (typeof(options.background) === 'string' || options.background instanceof Color){
+	  outop.background = new Color(options.background);
+	} else if (options.background === null){
+	  outop.background = null;
+	}
+      }
+
+      return outop;
+    }
+
     // -----------------------------------------------
 
     Object.defineProperties(this, {
@@ -363,17 +383,7 @@
       }
 
       options = (typeof(options) === typeof({})) ? options : {};
-      var outop = {};
-      if (typeof(options.foreground) !== 'undefined'){
-	if (typeof(options.foreground) === 'string' || options.foreground instanceof Color){
-	  outop.foreground = new Color(options.foreground);
-	}
-      }
-      if (typeof(options.background) !== 'undefined'){
-	if (typeof(options.background) === 'string' || options.background instanceof Color){
-	  outop.background = new Color(options.background);
-	}
-      }
+      var outop = ExtractGlyphOptions(options);
       var wrap = data_wrap_type;
       if (typeof(options.wrap_type) === 'number'){
 	if (options.wrap_type === Cursor.WRAP_TYPE_NOWRAP || options.wrap_type === Cursor.WRAP_TYPE_CHARACTER){
@@ -395,17 +405,7 @@
 	throw new TypeError();
       }
       options = (typeof(options) === typeof({})) ? options : {};
-      var outop = {};
-      if (typeof(options.foreground) !== 'undefined'){
-	if (typeof(options.foreground) === 'string' || options.foreground instanceof Color){
-	  outop.foreground = new Color(options.foreground);
-	}
-      }
-      if (typeof(options.background) !== 'undefined'){
-	if (typeof(options.background) === 'string' || options.background instanceof Color){
-	  outop.background = new Color(options.background);
-	}
-      }
+      var outop = ExtractGlyphOptions(options);
       var wrap = text_wrap_type;
       if (typeof(options.wrap_type) === 'number'){
 	if (options.wrap_type === Cursor.WRAP_TYPE_NOWRAP || options.wrap_type === Cursor.WRAP_TYPE_CHARACTER || options.wrap_type === Cursor.WRAP_TYPE_WORD){
