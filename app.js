@@ -16,8 +16,9 @@ requirejs([
   'src/R/ECS/Assembler',
   'src/Game/FSM',
   'src/Game/States/GameState',
-  'src/Game/States/MainMenuState'
-], function(Heartbeat, Keyboard, Color, Glyph, Terminal, Cursor, Tileset, Tilemap, Entity, ComponentDB, Assembler, FSM, GameState, MainMenuState){
+  'src/Game/States/MainMenuState',
+  'src/Game/States/GEPEditorState'
+], function(Heartbeat, Keyboard, Color, Glyph, Terminal, Cursor, Tileset, Tilemap, Entity, ComponentDB, Assembler, FSM, GameState, MainMenuState, GEPEditorState){
 
   // --------------------------------
   // Defining a "Document Ready" function. This is only garanteed to work on Chrome at the moment.
@@ -149,6 +150,7 @@ requirejs([
       var fsm = new FSM();
       new MainMenuState(term, kinput, fsm, true);
       new GameState(term, kinput, map, fsm);
+      new GEPEditorState(term, kinput, fsm);
 
 
       var lastDigitSize = 0;

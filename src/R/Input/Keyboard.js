@@ -477,6 +477,10 @@
     return codes.sort(function(a, b){return a-b;});
   };
 
+  Keyboard.CodeSameAsName = function(code, name){
+    return (name in Keycodes && Keycodes[name] === code);
+  };
+
   Keyboard.CodesToName = function(codes, joiner){
     joiner = (typeof(joiner) === 'string') ? joiner : "+";
     return codes.reduce(function(name, code){

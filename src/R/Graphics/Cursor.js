@@ -191,7 +191,7 @@
 	      _left = _right;
 	      _right = tmp;
 	    }
-	    if (_right - _left <= 0){
+	    if (_right - _left < 0){
 	      throw new RangeError();
 	    }
 	    width = (_right - _left)+1;
@@ -201,7 +201,7 @@
 	      _bottom = _top;
 	      _top = tmp;
 	    }
-	    if (_bottom - _top <= 0){
+	    if (_bottom - _top < 0){
 	      throw new RangeError();
 	    }
 	    height = (_bottom - _top)+1;
@@ -393,7 +393,7 @@
 
       var dlen = data.length;
       for (var i=0; i < dlen; i++){
-	term.set(left + pos_c, top + pos_r, data[dlen], outop);
+	term.set(left + pos_c, top + pos_r, data[i], outop);
 	if (this.shiftC(1, wrap === Cursor.WRAP_TYPE_CHARACTER) === false){
 	  break;
 	}
@@ -472,9 +472,6 @@
 	pos += 1;
       }
     };
-
-
-
   }
   Cursor.prototype.constructor = Cursor;
 

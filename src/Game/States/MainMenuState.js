@@ -84,7 +84,7 @@
       }
 
       if (keyName === "down" || keyName === "s" || keyName === "right" || keyName === "d"){
-	menuItem += (menuItem < 2) ? 1 : 0;
+	menuItem += (menuItem < 3) ? 1 : 0;
 	update = true;
       }
 
@@ -92,6 +92,8 @@
 	if (menuItem === 0){
 	  fsm.activateState("GameState");
 	} else if (menuItem === 2){
+	  fsm.activateState("GEPEditorState");
+	} else if (menuItem === 3){
 	  fsm.removeStates();
 	}
       }
@@ -150,6 +152,14 @@
 	  cursor.c = 0;
 	  cursor.r = 3;
 	  if (menuItem === 2){
+	    cursor.textOut("GEP Editor", {foreground:"#FFFF00"});
+	  } else {
+	    cursor.textOut("GEP Editor", {foreground:null});
+	  }
+
+	  cursor.c = 0;
+	  cursor.r = 4;
+	  if (menuItem === 3){
 	    cursor.textOut("Quit", {foreground:"#FFFF00"});
 	  } else {
 	    cursor.textOut("Quit", {foreground:null});

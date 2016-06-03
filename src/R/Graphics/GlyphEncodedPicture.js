@@ -12,12 +12,7 @@
        CommonJS style connection.
        ------------------------------------------------- */
     if(typeof module === "object" && module.exports){
-      /*
-	!!!! WARNING !!!!
-	This object uses the browser context class Image() as well as the document object for a lot of it's work. As such,
-	this object may not be importable using node's require() method... unless you know how to make those items global in this context.
-	Have fun!
-       */
+
       module.exports = factory(
 	require('src/R/Graphics/Color'),
 	require('src/R/Graphics/Cursor')
@@ -45,6 +40,45 @@
   }
 })(this, function (Color, Cursor) {
 
+
+  function PixToCode(pix, compressed){
+    var n = pix;
+    if (compressed === true){
+      var n = [pix[0]];
+      if (pix[1] !== null){
+	n.push(pix[1]);
+      }
+      if (pix[2] !== null){
+	n.push(pix[2]);
+      }
+    }
+    return n.join(":");
+  }
+
+  function CodeToPix(code){
+    var pix = code.split(":");
+    if (pix.length <= 0 || pix.length > 3){
+      throw new RangeError("Pixel code \"" + code + "\" contains incorrect number of components.");
+    }
+    for (var i=0; i < pix.length; i++){
+      if (pix[i] === ""){
+	if (i === 0){
+	  throw new TypeError("Pixel code \"" + code + "\" invalid. Missing required glyph index.");
+	}
+	pix[i] = null;
+      } else {
+	pix[i] = parseInt(pix[i]);
+	if (Number.isNaN(pix[i]) === true){
+	  throw new TypeError("Pixel code \"" + code + "\" invalid. Expecting integer value.");
+	}
+      }
+    }
+    return pix;
+  };
+
+
+
+
   function GlyphEncodedPicture(){
     var region = {
       left: 0,
@@ -60,40 +94,6 @@
     var defaultFG = null;
     var defaultBG = null;
 
-    function PixToCode(pix, compressed){
-      var n = pix;
-      if (compressed === true){
-	var n = [pix[0]];
-	if (pix[1] !== null){
-	  n.push(pix[1]);
-	}
-	if (pix[2] !== null){
-	  n.push(pix[2]);
-	}
-      }
-      return n.join(":");
-    }
-
-    function CodeToPix(code){
-      var pix = code.split(":");
-      if (pix.length <= 0 || pix.length > 3){
-	throw new RangeError("Pixel code \"" + code + "\" contains incorrect number of components.");
-      }
-      for (var i=0; i < pix.length; i++){
-	if (pix[i] === ""){
-	  if (i === 0){
-	    throw new TypeError("Pixel code \"" + code + "\" invalid. Missing required glyph index.");
-	  }
-	  pix[i] = null;
-	} else {
-	  pix[i] = parseInt(pix[i]);
-	  if (Number.isNaN(pix[i]) === true){
-	    throw new TypeError("Pixel code \"" + code + "\" invalid. Expecting integer value.");
-	  }
-	}
-      }
-      return pix;
-    };
 
     function NewColumn(){
       var width = this.width;
@@ -150,8 +150,31 @@
 
       "height":{
 	get:function(){return (gdat.length > 0) ? (region.bottom - region.top) + 1 : 0;}
+      },
+
+      "paletteSize":{
+	get:function(){return palette.length;}
       }
     });
+
+    this.toString = function(embedPalette){
+      var exp = {
+	id: "GEP",
+	version: "0.0.1",
+	region: region,
+	gdat: gdat,
+	defaultGlyph: defaultGlyph,
+	defaultFG: defaultFG,
+	defaultBG: defaultBG
+      };
+      if (embedPalette === true && palette.length > 0){
+	exp.palette = palette.map(function(item){
+	  return item.object;
+	});
+      }
+
+      return JSON.stringify(exp);
+    };
 
     this.getPaletteIndex = function(color){
       color = (color instanceof Color) ? color : new Color(color);
@@ -170,6 +193,37 @@
 	throw new RangeError("Palette index is out of bounds.");
       }
       return palette[index];
+    };
+
+    this.storePalette = function(npal){
+      if (!(npal instanceof Array)){
+	throw new TypeError("Expected array of palette colors.");
+      }
+
+      for (var i=0; i < npal.length; i++){
+	if (i >= palette.length){
+	  palette.push(new Color(npal[i]));
+	} else {
+	  palette[i] = new Color(npal[i]);
+	}
+      }
+      if (npal.length < palette.length){
+	palette.splice(npal.length, palette.length - npal.length);
+	if (gdat.length > 0){
+	  gdat.forEach(function(row){
+	    for (var i=0; i < row.length; i++){
+	      var pix = CodeToPix(row[i]);
+	      if (pix[1] !== null && pix[1] >= palette.length){
+		pix[1] = null;
+	      }
+	      if (pix[2] !== null && pix[2] >= palette.length){
+		pix[2] = null;
+	      }
+	      row[i] = PixToCode(pix, true);
+	    }
+	  });
+	}
+      }
     };
 
     
@@ -244,7 +298,7 @@
       }
 
       var pix = CodeToPix(gdat[r][c]);
-      if (typeof(pal) === typeof({})){
+      if (pal !== null && typeof(pal) === typeof({})){
 	if (typeof(pal.fg) !== 'undefined'){
 	  if (typeof(pal.fg) === 'number'){
 	    pix[1] = Math.floor(pal.fg);
@@ -284,6 +338,98 @@
     };
   }
   GlyphEncodedPicture.prototype.constructor = GlyphEncodedPicture;
+
+
+  GlyphEncodedPicture.FromString = function(gepjsonstr, palette){
+    var jdat = null;
+    try{
+      jdat = JSON.parse(gepjsonstr);
+    } catch (e){
+      throw new TypeError("Argument <gepjsonstr> is not a JSON string.");
+    }
+
+    if (jdat instanceof Array){
+      throw new TypeError("JSON is not in expected GEP format.");
+    }
+
+    if (typeof(jdat.id) !== 'string' || jdat.id !== "GEP"){
+      throw new TypeError("GEP ID invalid.");
+    }
+    if (typeof(jdat.version) !== 'string'){
+      throw new TypeError("GEP version missing or invalid data.");
+    }
+    if (jdat.version.split(".").length !== 3){
+      throw new Error("GEP version number malformed.");
+    }
+    // TODO: Actually DO something with the version number.
+
+
+    // --- Validate region
+    if (typeof(jdat.region) !== typeof({})){
+      throw new TypeError("GEP region data missing or malformed.");
+    }
+    if (typeof(jdat.region.left) !== 'number'){
+      throw new TypeError("GEP region.left missing or malformed.");
+    }
+    if (typeof(jdat.region.top) !== 'number'){
+      throw new TypeError("GEP region.top missing or malformed.");
+    }
+    if (typeof(jdat.region.right) !== 'number'){
+      throw new TypeError("GEP region.right missing or malformed.");
+    }
+    if (typeof(jdat.region.bottom) !== 'number'){
+      throw new TypeError("GEP region.bottom missing or malformed.");
+    }
+
+    if (jdat.region.right < jdat.region.left || jdat.region.bottom < jdat.region.top){
+      throw new Error("GEP region values invalid.");
+    }
+
+
+    // --- Validate gdat
+    if (typeof(jdat.gdat) === 'undefined'){
+      throw new Error("GEP missing glyph data.");
+    }
+    if (!(jdat.gdat instanceof Array)){
+      throw new TypeError("GEP glyph data malformed.");
+    }
+
+
+    // --- Check for palette
+    if (typeof(jdat.palette) !== 'undefined'){
+      if (!(jdat.palette instanceof Array)){
+	throw new TypeError("GEP palette expected to be an array.");
+      }
+      palette = jdat.palette; // If one if stored in the image, ignore the palette given.
+    } else if (typeof(palette) === 'undefined'){
+      throw new Error("GEP missing palette.");
+    }
+
+
+    // --- Create the GEP and store the data.
+    var width = (jdat.region.right - jdat.region.left) + 1;
+    var height = (jdat.region.bottom - jdat.region.top) + 1;
+    var gep = new GlyphEncodedPicture();
+    gep.storePalette(palette);
+    for (var r = 0; r < height; r++){
+      for (var c = 0; c <= width; c++){
+	var pix = null;
+	try{
+	  pix = CodeToPix(jdat.gdat[r][c]);
+	} catch (e) {
+	  throw new Error("GEP pixel data is malformed.");
+	}
+	gep.storePix(
+	  c + jdat.region.left,
+	  r + jdat.region.top,
+	  pix[0],
+	  pix[1],
+	  pix[2]
+	);
+      }
+    }
+    return gep;
+  };
 
 
   return GlyphEncodedPicture;
