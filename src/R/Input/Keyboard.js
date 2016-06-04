@@ -250,6 +250,76 @@
   }
 
 
+  function CodeToTypeChar(code, shift){
+    shift = (shift === true) ? true : false;
+    var capletshift = 32;
+    if (code >= 65 && code <= 90){ // 65 = "A" | 90 = "Z"
+      return String.fromCharCode(code + ((shift === false) ? capletshift : 0));
+    } else if (code >= 97 && code <= 122){ // 97 = "a" | 122 = "z"
+      return String.fromCharCode(code);
+    } else if (code >= 48 && code <= 57){ // "0" to "9"
+      if (shift){
+        switch(code){
+        case 48: // 0
+          return ")";
+        case 49: // 1
+          return "!";
+        case 50: // 2
+          return "@";
+        case 51: // 3
+          return "#";
+        case 52: // 4
+          return "$";
+        case 53: // 5
+          return "%";
+        case 54: // 6
+          return "^";
+        case 55: // 7
+          return "&";
+        case 56: // 8
+          return "*";
+        case 57: // 9
+          return "(";
+        }
+      } else {
+        return String.fromCharCode(code);
+      }
+    } else {
+      switch(Keycodes.byValue(code)){
+      case "space":
+        return " ";
+      case "tab":
+        return (shift) ? "" : "\t";
+      case "enter":
+        return (shift) ? "" : "\n";
+      case "backslash":
+        return (shift) ? "|" : "\\";
+      case "openbracket":
+        return (shift) ? "{" : "[";
+      case "closebracket":
+        return (shift) ? "}" : "]";
+      case "semicolon":
+        return (shift) ? ":" : ";";
+      case "quote":
+        return (shift) ? "\"" : "'";
+      case "comma":
+        return (shift) ? "<" : ",";
+      case "period":
+        return (shift) ? ">" : ".";
+      case "forwardslash":
+        return (shift) ? "?" : "/";
+      case "grave":
+        return (shift) ? "~" : "`";
+      case "dash":
+        return (shift) ? "_" : "-";
+      case "equal":
+        return (shift) ? "+" : "=";
+      }
+    }
+    return "";
+  };
+
+
   // ----------------------------------------------------------------------------------
 
 
@@ -306,6 +376,17 @@
       }
     });
 
+    function ValidPrintableKeys(){
+      if (ActiveKeys.length === 1){
+        return (ActiveKeys[0] !== 16 && ActiveKeys[0] !== 17 && ActiveKeys[0] !== 18);
+      } else if (ActiveKeys.length === 2){
+        if (ActiveKeys[0] === 16){ // Shift
+          return (ActiveKeys[1] !== 17 && ActiveKeys[1] !== 18);
+        }
+      }
+      return false;
+    }
+
     win.addEventListener("keydown", (function(e){
       if (Enabled === false){return;} // Don't handle input if not Enabled.
 
@@ -326,6 +407,12 @@
       }
 
       if (NotifyKeysOnce === false || (NotifyKeysOnce === true && update === true)){
+        if (code !== 16 && ValidPrintableKeys()){
+          var c = CodeToTypeChar(code, ActiveKeys[0] === 16);
+          if (c !== ""){
+            this.emit("printcode", c);
+          }
+        }
 	this.emit("keydown", code);
       }
     }).bind(this), false);

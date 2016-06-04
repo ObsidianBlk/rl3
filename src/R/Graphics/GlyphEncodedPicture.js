@@ -176,6 +176,11 @@
       return JSON.stringify(exp);
     };
 
+    // This is just a wrapper for the getPaletteIndex function to add clarity.
+    this.addPaletteColor = function(color){
+      this.getPaletteIndex(color);
+    };
+
     this.getPaletteIndex = function(color){
       color = (color instanceof Color) ? color : new Color(color);
       for (var i=0; i < palette.length; i++){
@@ -193,6 +198,15 @@
 	throw new RangeError("Palette index is out of bounds.");
       }
       return palette[index];
+    };
+
+
+    this.replacePaletteColor = function(index, color){
+      if (index < 0 || index >= palette.length){
+        throw new RangeError("Palette index is out of bounds.");
+      }
+      color = (color instanceof Color) ? color : new Color(color);
+      palette[index] = color;
     };
 
     this.storePalette = function(npal){
