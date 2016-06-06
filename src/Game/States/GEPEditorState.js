@@ -9,7 +9,9 @@
       'src/R/Graphics/Terminal',
       'src/R/Graphics/Cursor',
       'src/R/Input/Keyboard',
-      'src/R/Graphics/GlyphEncodedPicture'
+      'src/R/Graphics/GlyphEncodedPicture',
+      'src/Game/States/GEPEditor/PalControl',
+      'src/Game/States/GEPEditor/EditorControl'
     ], factory);
   } else if (typeof exports === 'object') {
     /* -------------------------------------------------
@@ -22,7 +24,9 @@
 	require('src/R/Graphics/Terminal'),
 	require('src/R/Graphics/Cursor'),
 	require('src/R/Input/Keyboard'),
-	require('src/R/Graphics/GlyphEncodedPicture')
+	require('src/R/Graphics/GlyphEncodedPicture'),
+	require('src/Game/States/GEPEditor/PalControl'),
+	require('src/Game/States/GEPEditor/EditorControl')
       );
     }
   } else {
@@ -32,12 +36,22 @@
     if (typeof(root.FSM) === 'undefined'){
       throw new Error("Missing required class 'FSM'.");
     }
+    if (typeof(root.States) === 'undefined'){
+      throw new Error("Missing required library object 'States'.");
+    }
+    if (typeof(root.States.GEPEditor) === 'undefined'){
+      throw new Error("Missing required library object 'States.GEPEditor'.");
+    }
+    if (typeof(root.States.GEPEditor.PalControl) === 'undefined'){
+      throw new Error("Missing required class 'PalControl'.");
+    }
+    if (typeof(root.States.GEPEditor.EditorControl) === 'undefined'){
+      throw new Error("Missing required class 'EditorControl'.");
+    }
     if (typeof(root.R) === 'undefined'){
       throw new Error("The R library has not been loaded.");
     }
-    if (typeof(root.States) === 'undefined'){
-      root.States = {};
-    }
+
     if (typeof(root.States.GameState) === 'undefined'){
       root.States.Game = factory(
 	root.FSM,
@@ -45,11 +59,15 @@
 	root.R.Graphics.Terminal,
 	root.R.Graphics.Cursor,
 	root.R.Input.Keyboard,
-	root.R.Graphics.GlyphEncodedPicture
+	root.R.Graphics.GlyphEncodedPicture,
+	root.States.GEPEditor.PalControl,
+	root.States.GEPEditor.EditorControl
       );
     }
   }
-})(this, function (FSM, Color, Terminal, Cursor, Keyboard, GlyphEncodedPicture) {
+})(this, function (FSM, Color, Terminal, Cursor, Keyboard, GlyphEncodedPicture, PalControl, EditorControl) {
+
+
 
   // (G)lyph (E)ncoded (P)icture Editor State
   function GEPEditorState(terminal, keyboard, fsm, setActive){
@@ -66,13 +84,12 @@
       r: 0
     };
 
-    var palette = [];
-
     var activeScreen = 1; // 0 = palette select | 1 = image painter | 2 = glyph select | 3 = terminal input (only accessible via CTRL+~ combo)
 
     var activeGlyph = 0;
-    var activeFG = null;
-    var activeBG = null;
+
+    var ctrlPalette = new PalControl(keyboard);
+    var ctrlEditor = new EditorControl(keyboard);
 
     var termcmd = null;
     var termmsg = null;
@@ -92,90 +109,26 @@
     var redrawImage = true;
     var redrawUI = true;
 
-    function paletteIndexFromColor(color){
-      for (var i=0; i < palette.length; i++){
-        if (palette[i].eq(color) === true){
-          return i;
-        }
+    function ActiveScreen(screen){
+      if (typeof(screen) === 'number'){
+	if (screen >= 0 && screen < 3){
+	  activeScreen = Math.floor(screen);
+	  switch (activeScreen){
+	    case 0:
+	    ctrlEditor.activate(false);
+	    ctrlPalette.activate(true); break;
+	    case 1:
+	    ctrlPalette.activate(false);
+	    ctrlEditor.activate(true); break;
+	  }; 
+	} else if (activeScreen === 3){
+	  ctrlPalette.activate(false);
+	  ctrlEditor.activate(false);
+	}
       }
-      if (palette.length < 256){
-        palette.push(color);
-        return palette.length - 1;
-      }
-      return -1;
-    };
+      return activeScreen;
+    }
 
-    function PaletteCMD(args, fg){
-      fg = (fg === true) ? true : false;
-      var index = null;
-      var r = 0;
-      var g = 0;
-      var b = 0;
-
-      args = args.split(",");
-      if (args.length === 1){
-        args[0] = args[0].trim();
-        if (args[0].startsWith("#") && args[0].length === 7){
-          index = paletteIndexFromColor(new Color(args[0]));
-          if (index < 0){
-            termerror = "Palette at max size.";
-          } else {
-            if (fg === true){
-              activeFG = index;
-            } else {
-              activeBG = index;
-            }
-            redrawPalette = true;
-          }
-        } else {
-          index = parseInt(args[0]);
-          if (Number.isNaN(index)){
-            termerror = "Command argument invalid.";
-          } else {
-            if (index < 0){
-              if (fg === true){
-                activeFG = null;
-              } else {
-                activeBG = null;
-              }
-              redrawPalette = true;
-            } else if (index < palette.length){
-              if (fg === true){
-                activeFG = index;
-              } else {
-                activeBG = true;
-              }
-              redrawPalette = true;
-            } else {
-              termerror = "Index out of bounds.";
-            }
-          }
-        }
-      } else if (args.length === 3){
-        r = parseInt(args[0].trim());
-        g = parseInt(args[1].trim());
-        b = parseInt(args[2].trim());
-        if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)){
-          termerror = "Command arguments invalid.";
-        } else {
-          if (r > 255 || g > 255 || b > 255){
-            termerror = "Value out of bounds.";
-          } else {
-            index = paletteIndexFromColor(new Color({r:r, g:g, b:b}));
-            if (index < 0){
-              termerror = "Palette at max size.";
-            } else {
-              if (fg === true){
-                activeFG = index;
-              } else {
-                activeBG = index;
-              }
-              redrawPalette = true;
-            }
-          }
-        }
-      }
-    };
 
     function processTerminalCommand(cmd){
       var args = null;
@@ -190,16 +143,31 @@
         case "\\i":
           termmsg = "Columns: " + gep.width.toString() + " | rows: " + gep.height.toString();
           break;
+	case "\\pal16":
+	  if (ctrlPalette.processGet16BitPaletteCMD() === true){
+	    if (gep !== null){
+	      gep.storePalette(ctrlPalette.palette);
+	    }
+	  }
         }
       } else if (cmd.length === 2){
         switch(cmd[0]){
         case "\\fg":
-          PaletteCMD(cmd[1], true);
+          ctrlPalette.processSwitchColorCMD(cmd[1], true);
           break;
 
         case "\\bg":
-          PaletteCMD(cmd[1]);
+          ctrlPalette.processSwitchColorCMD(cmd[1]);
           break;
+	case "\\pal16":
+	  if (ctrlPalette.processGet16BitPaletteCMD(cmd[1]) === true){
+	    if (gep !== null){
+	      gep.storePalette(ctrlPalette.palette);
+	    }
+	  }
+	  redrawPalette = true;
+	  redrawImage = true;
+	  break;
         }
       } else {
         termwarning = "Command not recognized.";
@@ -215,19 +183,23 @@
       };
       framecursor.clear();
 
-      gepcursor.region = {
-	left: 3,
-	right: newres[0] - 4,
-	top: 1,
-	bottom: newres[1] - 4
-      };
+      if (ctrlEditor.cursor !== null){
+	ctrlEditor.cursor.region = {
+	  left: 3,
+	  right: newres[0] - 4,
+	  top: 1,
+	  bottom: newres[1] - 4
+	};
+      }
 
-      palcursor.region = {
-	left: 1,
-	right: 2,
-	top: 1,
-	bottom: newres[1] - 4
-      };
+      if (ctrlPalette.cursor !== null){
+	ctrlPalette.cursor.region = {
+	  left: 1,
+	  right: 2,
+	  top: 1,
+	  bottom: newres[1] - 4
+	};
+      }
 
       glyphcursor.region = {
 	left: newres[0] - 2,
@@ -318,58 +290,30 @@
       cur.dataOut(line);
     };
 
-    function RenderPalette(cur, col, index){
-      var rows = cur.rows-2;
-      var midrow = Math.floor((rows-2)*0.5);
-      if (col < 0 || col >= cur.columns){return;} // Invalid data. Do nothing.
+    function renderGlyphs(cur, index){
+      var rows = cur.rows;
+      var midrow = Math.floor(rows*0.5);
+      var length = terminal.glyph.elements;
+      if (index < 0 || index >= terminal.glyph.elements){return;} // Invalid data. Do nothing.
 
-      // Render the standard information.
-      if (col === 0){
+      var goffset = 0;
+      if (index > midrow && index < length - midrow){
+        goffset = index - midrow;
+      } else if (length > midrow && index > length-midrow){
+        goffset = length - rows;
+      }
+
+      for (var r=0; r < rows; r++){
+        var gindex = r + goffset;
+        if (gindex >= length){break;}
+        
         cur.c = 0;
-        cur.r = 0;
-        if (index === null){
-          cur.set("F".charCodeAt(0), Cursor.WRAP_TYPE_NOWRAP, {foreground:"#FFFF00"});
+        cur.r = r;
+
+        if (gindex === index){
+          cur.set(gindex, Cursor.WRAP_TYPE_NOWRAP, {background:"#FFFF00"});
         } else {
-          cur.set("F".charCodeAt(0));
-        }
-      } else if (col === 1){
-        cur.c = 1;
-        cur.r = 0;
-        if (index === null){
-          cur.set("B".charCodeAt(0), Cursor.WRAP_TYPE_NOWRAP, {foreground:"#FFFF00"});
-        } else {
-          cur.set("B".charCodeAt(0));
-        }
-      }
-      cur.c = col;
-      cur.r = 1;
-      cur.set("-".charCodeAt(0));
-
-
-      if (index !== null && (index < 0 || index >= palette.length)){return;} // Invalid data. Do nothing.
-
-      var paloffset = 0;
-      if (index !== null){
-        if (index > midrow && index < palette.length - midrow){
-          paloffset = index - midrow;
-        } else if (palette.length > midrow && index > palette.length-midrow){
-          paloffset = palette.length - (rows-2);
-        }
-      }
-
-      if (palette.length > 0){
-        for (var r=0; r < (rows-2); r++){
-          var pindex = r + paloffset;
-          if (pindex >= palette.length){break;}
-          
-          cur.c = col;
-          cur.r = r + 2;
-
-          if (pindex === index){
-            cur.set(9, Cursor.WRAP_TYPE_NOWRAP, {foreground:"#FFFF00", background:palette[pindex].hex});
-          } else {
-            cur.set(" ".charCodeAt(0), Cursor.WRAP_TYPE_NOWRAP, {background:palette[pindex].hex});
-          }
+          cur.set(gindex, Cursor.WRAP_TYPE_NOWRAP, {background:null});
         }
       }
     };
@@ -380,51 +324,65 @@
         if (termcmd === null){
 	  fsm.activateState("MainMenuState");
         } else {
+	  ActiveScreen(1);
           termcmd = null;
           termmsg = null;
           termerror = null;
           termwarning = null;
-          activeScreen = 1;
           redrawUI = true;
         }
+
+	// Terminal trumps all over inputs...
       } else if (activeScreen === 3){ // Special case for Terminal.
         if (Keyboard.CodeSameAsName(code, "backspace") === true && termcmd !== null && termcmd !== ""){
           termcmd = termcmd.substr(0, termcmd.length-1);
           redrawUI = true;
         }
-      } else if (activeScreen === 0){ // Handle Palette selection
 
-      } else if (activeScreen === 2){ // Handle Glyph selection
-
-      } else if (activeScreen === 1){ // Handle drawing
-
+	// Check rest of input...
+      } else {
+	if (Keyboard.CodeSameAsName(code, "tab") === true){
+	  activeScreen += 1;
+	  if (activeScreen === 3){
+	    activeScreen = 0;
+	  }
+	  ActiveScreen(activeScreen);
+	} else if (keyboard.activeCombo("shift+tab") === true){
+	  activeScreen -= 1;
+	  if (activeScreen < 0){
+	    activeScreen = 2;
+	  }
+	  ActiveScreen(activeScreen);
+	}
       }
     };
 
     function onPrintableChar(ch){
       if (activeScreen === 3 && termcmd !== null){
-        var finish = (ch === "\r" || ch === "\n");
-        if (ch !== "\t" && finish === false){
-          termcmd += ch;
-        } else if (finish){
-          processTerminalCommand(termcmd);
-          termcmd = "";
-        }
-        redrawUI = true;
+	if (ch !== "\t"){
+          var finish = (ch === "\r" || ch === "\n");
+          if (finish === false){
+            termcmd += ch;
+          } else {
+            processTerminalCommand(termcmd);
+            termcmd = "";
+          }
+          redrawUI = true;
+	}
       }
     };
 
     function onCtrlTildaCombo(){
       termcmd = "";
-      activeScreen = 3;
+      ActiveScreen(3);
       redrawUI = true;
     };
 
 
     this.enter = function(){
       framecursor = new Cursor(terminal);
-      gepcursor = new Cursor(terminal);
-      palcursor = new Cursor(terminal);
+      ctrlEditor.cursor = new Cursor(terminal);
+      ctrlPalette.cursor = new Cursor(terminal);
       glyphcursor = new Cursor(terminal);
       uicursor = new Cursor(terminal);
     };
@@ -434,8 +392,8 @@
       onRenderResize([terminal.columns, terminal.rows], null);
       if (gep === null){
 	gep = new GlyphEncodedPicture();
-        if (palette.length > 0){
-          gep.storePalette(palette);
+        if (ctrlPalette.palette.length > 0){
+          gep.storePalette(ctrlPalette.palette);
         }
       }
       keyboard.on("keydown", onKeyDown);
@@ -454,8 +412,8 @@
 
     this.exit = function(){
       framecursor = null;
-      gepcursor = null;
-      palcursor = null;
+      ctrlEditor.cursor = null;
+      ctrlPalette.cursor =  null;
       glyphcursor = null;
       uicursor = null;
       gep = null;
@@ -467,18 +425,26 @@
 	  redrawFrame = false;
 	  RenderFrame(framecursor);
 	}
-        if (redrawPalette === true){
+
+        if (ctrlPalette.dirty === true || redrawPalette === true){
           redrawPalette = false;
-          RenderPalette(palcursor, 0, activeFG);
-          RenderPalette(palcursor, 1, activeBG);
+          ctrlPalette.render();
         }
+
+	if (ctrlEditor.dirty === true || redrawImage === true){
+	  redrawImage = false;
+	  ctrlEditor.render();
+	}
+
         if (redrawUI === true){
+	  var activeFG = ctrlPalette.foreground;
+	  var activeBG = ctrlPalette.background;
           redrawUI = false;
           uicursor.clear();
           uicursor.c = 0;
           uicursor.set(activeGlyph, Cursor.WRAP_TYPE_NOWRAP, {
-            foreground: (activeFG !== null) ? palette[activeFG].hex : null,
-            background: (activeBG !== null) ? palette[activeBG].hex : null
+            foreground: (activeFG !== null) ? activeFG.hex : null,
+            background: (activeBG !== null) ? activeBG.hex : null
           });
 
           uicursor.c = 2;
@@ -496,6 +462,11 @@
             uicursor.textOut(termmsg, {foreground:"#0000FF", background:"#00FFFF"});
           }
         }
+
+	if (redrawGlyphs === true){
+	  redrawGlyphs = false;
+	  renderGlyphs(glyphcursor, activeGlyph);
+	}
       }
     };
 
