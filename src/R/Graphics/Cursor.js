@@ -49,6 +49,7 @@
     if (!(term instanceof Terminal)){
       throw new TypeError();
     }
+    Emitter.call(this);
 
     var top = 0;
     var left = 0;
@@ -210,6 +211,7 @@
 	    right = _right;
 	    top = _top;
 	    bottom = _bottom;
+            this.emit("regionresize", {left:left, right:right, top:top, bottom:bottom});
 	  }
 	}
       },
@@ -473,6 +475,7 @@
       }
     };
   }
+  Cursor.prototype.__proto__ = Emitter.prototype;
   Cursor.prototype.constructor = Cursor;
 
   Cursor.WRAP_TYPE_NOWRAP = 0;

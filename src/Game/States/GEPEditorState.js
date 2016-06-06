@@ -104,9 +104,7 @@
 
     var focus = false;
     var redrawFrame = true;
-    var redrawPalette = true;
     var redrawGlyphs = true;
-    var redrawImage = true;
     var redrawUI = true;
 
     function ActiveScreen(screen){
@@ -121,9 +119,10 @@
 	    ctrlPalette.activate(false);
 	    ctrlEditor.activate(true); break;
 	  }; 
-	} else if (activeScreen === 3){
+	} else if (screen === 3){
 	  ctrlPalette.activate(false);
 	  ctrlEditor.activate(false);
+          activeScreen = 3;
 	}
       }
       return activeScreen;
@@ -165,8 +164,6 @@
 	      gep.storePalette(ctrlPalette.palette);
 	    }
 	  }
-	  redrawPalette = true;
-	  redrawImage = true;
 	  break;
         }
       } else {
@@ -216,11 +213,23 @@
       };
 
       redrawFrame = true;
-      redrawPalette = true;
       redrawGlyphs = true;
-      redrawImage = true;
       redrawUI = true;
     };
+
+    function OnPaletteBGChange(){
+      redrawUI = true;
+      // TODO: Pass this into the editor control as well
+    }
+
+    function OnPaletteFGChange(){
+      redrawUI = true;
+      // TODO: Pass this into the editor control as well
+    }
+
+    function OnPaletteChange(){
+      redrawUI = true;
+    }
 
     function RenderFrame(cur){
       var rows = cur.rows;
@@ -381,8 +390,11 @@
 
     this.enter = function(){
       framecursor = new Cursor(terminal);
-      ctrlEditor.cursor = new Cursor(terminal);
       ctrlPalette.cursor = new Cursor(terminal);
+      ctrlPalette.on("fgchange", OnPaletteFGChange);
+      ctrlPalette.on("bgchange", OnPaletteBGChange);
+      ctrlPalette.on("palettechange", OnPaletteChange);
+      ctrlEditor.cursor = new Cursor(terminal);
       glyphcursor = new Cursor(terminal);
       uicursor = new Cursor(terminal);
     };
@@ -413,6 +425,9 @@
     this.exit = function(){
       framecursor = null;
       ctrlEditor.cursor = null;
+      ctrlPalette.unlisten("fgchange", OnPaletteFGChange);
+      ctrlPalette.unlisten("bgchange", OnPaletteBGChange);
+      ctrlPalette.unlisten("palettechange", OnPaletteChange);
       ctrlPalette.cursor =  null;
       glyphcursor = null;
       uicursor = null;
@@ -426,15 +441,8 @@
 	  RenderFrame(framecursor);
 	}
 
-        if (ctrlPalette.dirty === true || redrawPalette === true){
-          redrawPalette = false;
-          ctrlPalette.render();
-        }
-
-	if (ctrlEditor.dirty === true || redrawImage === true){
-	  redrawImage = false;
-	  ctrlEditor.render();
-	}
+        ctrlPalette.render();
+        ctrlEditor.render();
 
         if (redrawUI === true){
 	  var activeFG = ctrlPalette.foreground;

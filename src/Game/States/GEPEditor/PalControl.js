@@ -4,6 +4,7 @@
        AMD style connection.
        ------------------------------------------------- */
     define([
+      'src/R/System/Emitter',
       'src/R/Graphics/Color',
       'src/R/Graphics/Terminal',
       'src/R/Graphics/Cursor',
@@ -16,6 +17,7 @@
        ------------------------------------------------- */
     if(typeof module === "object" && module.exports){
       module.exports = factory(
+        require('src/R/System/Emitter'),
         require('src/R/Graphics/Color'),
 	require('src/R/Graphics/Terminal'),
 	require('src/R/Graphics/Cursor'),
@@ -42,6 +44,7 @@
 
     if (typeof(root.States.GEPEditor.PalControl) === 'undefined'){
       root.States.GEPEditor.PalControl = factory(
+        root.R.System.Emitter,
         root.R.Graphics.Color,
 	root.R.Graphics.Terminal,
 	root.R.Graphics.Cursor,
@@ -50,7 +53,7 @@
       );
     }
   }
-})(this, function (Color, Terminal, Cursor, Keyboard, GlyphEncodedPicture) {
+})(this, function (Emitter, Color, Terminal, Cursor, Keyboard, GlyphEncodedPicture) {
 
 
   function TermPalette(id){
@@ -182,6 +185,7 @@
 
 
   function PalControl(keyboard){
+    Emitter.call(this);
     var cur = null;
     var palette = [];
 
@@ -193,8 +197,10 @@
 
     var palctrl = 0;
 
-    var cmdError = "";
-    var cmdWarning = "";
+    var cmdError = null;
+    var cmdWarning = null;
+
+    function OnRegionResize(region){dirty = true;}
 
     Object.defineProperties(this, {
       "dirty":{
@@ -206,7 +212,15 @@
 	set:function(c){
 	  if (c === null || c instanceof Cursor){
 	    if (cur !== c){
-	      cur = c;
+              if (cur !== null){
+                cur.unlisten("regionresize", OnRegionResize);
+              }
+
+              cur = c;
+
+              if (cur !== null){
+                cur.on("regionresize", OnRegionResize);
+              }
 	      dirty = true;
 	    }
 	  }
@@ -410,62 +424,32 @@
 	}
       }
       dirty = true;
+      this.emit("palettechange");
       return true;
     };
 
     this.processSwitchColorCMD = function(args, fg){
       fg = (fg === true) ? true : false;
       var index = null;
-      var r = 0;
-      var g = 0;
-      var b = 0;
+      cmdError = null;
+      cmdWarning = null;
 
+      var palsize = palette.length;
       args = args.split(",");
       if (args.length === 1){
         args[0] = args[0].trim();
         if (args[0].startsWith("#") && args[0].length === 7){
           index = paletteIndexFromColor(new Color(args[0]));
-          if (index < 0){
-            cmdError = "Palette at max size.";
-          } else {
-            if (fg === true){
-              activeFG = index;
-            } else {
-              activeBG = index;
-            }
-	    dirty = true;
-            return true;
-          }
         } else {
           index = parseInt(args[0]);
           if (Number.isNaN(index)){
             cmdError = "Command argument invalid.";
-          } else {
-            if (index < 0){
-              if (fg === true){
-                activeFG = null;
-              } else {
-                activeBG = null;
-              }
-	      dirty = true;
-              return true;
-            } else if (index < palette.length){
-              if (fg === true){
-                activeFG = index;
-              } else {
-                activeBG = true;
-              }
-	      dirty = true;
-              return true;
-            } else {
-              cmdError = "Index out of bounds.";
-            }
           }
         }
       } else if (args.length === 3){
-        r = parseInt(args[0].trim());
-        g = parseInt(args[1].trim());
-        b = parseInt(args[2].trim());
+        var r = parseInt(args[0].trim());
+        var g = parseInt(args[1].trim());
+        var b = parseInt(args[2].trim());
         if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)){
           cmdError = "Command arguments invalid.";
         } else {
@@ -473,18 +457,37 @@
             cmdError = "Value out of bounds.";
           } else {
             index = paletteIndexFromColor(new Color({r:r, g:g, b:b}));
-            if (index < 0){
-              cmdError = "Palette at max size.";
-            } else {
-              if (fg === true){
-                activeFG = index;
-              } else {
-                activeBG = index;
-              }
-	      dirty = true;
-              return true;
-            }
           }
+        }
+      }
+
+      if (palette.length !== palsize){
+        this.emit("palettechange");
+      }
+      
+      if (cmdError === null && cmdWarning === null){
+        if (index < 0){
+          dirty = true;
+          if (fg === true){
+            activeFG = null;
+            this.emit("fgchange");
+          } else {
+            activeBG = null;
+            this.emit("bgchange");
+          }
+          return true;
+        } else if (index < palette.length){
+          if (fg === true){
+            activeFG = index;
+            this.emit("fgchange");
+          } else {
+            activeBG = index;
+            this.emit("bgchange");
+          }
+	  dirty = true;
+          return true;
+        } else {
+          cmdError = "Index out of bounds.";
         }
       }
       return false;
@@ -492,12 +495,14 @@
 
 
     this.render = function(){
+      if (cur === null || dirty === false){return;}
       dirty = false;
       RenderPalCol(0, activeFG);
       RenderPalCol(1, activeBG);
     };
   };
-  PalControl.prototype = PalControl;
+  PalControl.prototype.__proto__ = Emitter.prototype;
+  PalControl.prototype.constructor = PalControl;
 
 
   return PalControl;
