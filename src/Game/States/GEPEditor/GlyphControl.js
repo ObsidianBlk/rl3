@@ -8,8 +8,7 @@
       'src/R/Graphics/Color',
       'src/R/Graphics/Terminal',
       'src/R/Graphics/Cursor',
-      'src/R/Input/Keyboard',
-      'src/R/Graphics/GlyphEncodedPicture'
+      'src/R/Input/Keyboard'
     ], factory);
   } else if (typeof exports === 'object') {
     /* -------------------------------------------------
@@ -21,8 +20,7 @@
         require('src/R/Graphics/Color'),
 	require('src/R/Graphics/Terminal'),
 	require('src/R/Graphics/Cursor'),
-	require('src/R/Input/Keyboard'),
-	require('src/R/Graphics/GlyphEncodedPicture')
+	require('src/R/Input/Keyboard')
       );
     }
   } else {
@@ -38,46 +36,36 @@
     if (typeof(root.States) === 'undefined'){
       root.States = {};
     }
-
     if (typeof(root.States.GEPEditor) === 'undefined'){
       root.States.GEPEditor = {};
     }
 
-    if (typeof(root.States.GEPEditor.EditorControl) === 'undefined'){
-      root.States.GEPEditor.EditorControl = factory(
+    if (typeof(root.States.GEPEditor.PalControl) === 'undefined'){
+      root.States.GEPEditor.PalControl = factory(
         root.R.System.Emitter,
         root.R.Graphics.Color,
 	root.R.Graphics.Terminal,
 	root.R.Graphics.Cursor,
-	root.R.Input.Keyboard,
-	root.R.Graphics.GlyphEncodedPicture
+	root.R.Input.Keyboard
       );
     }
   }
-})(this, function (Emitter, Color, Terminal, Cursor, Keyboard, GlyphEncodedPicture) {
+})(this, function (Emitter, Color, Terminal, Cursor, Keyboard) {
 
-  function EditorControl(keyboard){
+  function GlyphControl(terminal, keyboard){
     Emitter.call(this);
+
     var cur = null;
-    var gep = null;
     var active = false;
     var dirty = true;
+
+    var glyphIndex = 0;
 
     function OnRegionResize(region){dirty = true;}
 
     Object.defineProperties(this, {
-      "dirty":{
-	get:function(){return dirty;}
-      },
-      
-      "image":{
-	get:function(){return gep;}
-      },
-
-      "active":{
-	get:function(){return active;}
-      },
-
+      "dirty":{get:function(){return dirty;}},
+      "active":{get:function(){return active;}},
       "cursor":{
 	get:function(){return cur;},
 	set:function(c){
@@ -86,8 +74,8 @@
               if (cur !== null){
                 cur.unlisten("regionresize", OnRegionResize);
               }
-              
-	      cur = c;
+
+              cur = c;
 
               if (cur !== null){
                 cur.on("regionresize", OnRegionResize);
@@ -96,37 +84,90 @@
 	    }
 	  }
 	}
+      },
+
+      "glyph":{
+	get:function(){return glyphIndex;},
+	set:function(g){
+	  if (typeof(g) === 'number'){
+	    if (g >= 0 && g < terminal.glyph.elements && Math.floor(g) !== glyphIndex){
+	      glyphIndex = Math.floor(g);
+	      this.emit("glyphchange");
+	      dirty = true;
+	    }
+	  }
+	}
       }
     });
 
-    function OnKeyDown(code){
-
-    }
+    var OnKeyDown = (function(code){
+      if (Keyboard.CodeSameAsName(code, "up") === true){
+	if (glyphIndex > 0){
+	  glyphIndex -= 1;
+	  this.emit("glyphchange");
+	  dirty = true;
+	}
+      } else if (Keyboard.CodeSameAsName(code, "down") === true){
+	if (glyphIndex+1 < terminal.glyph.elements){
+	  glyphIndex += 1;
+	  this.emit("glyphchange");
+	  dirty = true;
+	}
+      }
+    }).bind(this);
 
 
     this.activate = function(enable){
       enable = (enable === false) ? false : true;
-      if (enable === active){return;} // No state to change.
-      active = enable;
+      if (active === enable){return;} // Nothing to change.      
       
+      active = enable;
       if (active === true){
 	this.emit("activating");
 	keyboard.on("keydown", OnKeyDown);
       } else {
 	keyboard.unlisten("keydown", OnKeyDown);
       }
-
       dirty = true;
     };
+
 
     this.render = function(){
       if (cur === null || dirty === false){return;}
       dirty = false;
+
+      var rows = cur.rows;
+      var midrow = Math.floor(rows*0.5);
+      var length = terminal.glyph.elements;
+      if (glyphIndex < 0 || glyphIndex >= terminal.glyph.elements){return;} // Invalid data. Do nothing.
+
+      var goffset = 0;
+      if (glyphIndex > midrow && glyphIndex < length - midrow){
+        goffset = glyphIndex - midrow;
+      } else if (length > midrow && glyphIndex >= length-midrow){
+        goffset = length - rows;
+      }
+
+      for (var r=0; r < rows; r++){
+        var gindex = r + goffset;
+        if (gindex >= length){break;}
+
+	cur.c = 0;
+        cur.r = r;
+        if (gindex === glyphIndex){
+          cur.set(16, Cursor.WRAP_TYPE_NOWRAP, (active === true) ? {foreground:"#FFFF00"} : {foreground:null});
+        } else {
+	  cur.set(" ".charCodeAt(0), Cursor.WRAP_TYPE_NOWRAP, {foreground:null});
+	}
+
+        cur.c = 1;
+        cur.r = r;
+	cur.set(gindex);
+      }
     };
   }
-  EditorControl.prototype.__proto__ = Emitter.prototype;
-  EditorControl.prototype.constructor = EditorControl;
+  GlyphControl.prototype.__proto__ = Emitter.prototype;
+  GlyphControl.prototype.constructor = GlyphControl;
 
-
-  return EditorControl;
+  return GlyphControl;
 });

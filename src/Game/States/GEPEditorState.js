@@ -11,6 +11,8 @@
       'src/R/Input/Keyboard',
       'src/R/Graphics/GlyphEncodedPicture',
       'src/Game/States/GEPEditor/PalControl',
+      'src/Game/States/GEPEditor/GlyphControl',
+      'src/Game/States/GEPEditor/TerminalControl',
       'src/Game/States/GEPEditor/EditorControl'
     ], factory);
   } else if (typeof exports === 'object') {
@@ -26,6 +28,8 @@
 	require('src/R/Input/Keyboard'),
 	require('src/R/Graphics/GlyphEncodedPicture'),
 	require('src/Game/States/GEPEditor/PalControl'),
+	require('src/Game/States/GEPEditor/GlyphControl'),
+	require('src/Game/States/GEPEditor/TerminalControl'),
 	require('src/Game/States/GEPEditor/EditorControl')
       );
     }
@@ -45,6 +49,12 @@
     if (typeof(root.States.GEPEditor.PalControl) === 'undefined'){
       throw new Error("Missing required class 'PalControl'.");
     }
+    if (typeof(root.State.GEPEditor.GlyphControl) === 'undefined'){
+      throw new Error("Missing required class 'GlyphControl'.");
+    }
+    if (typeof(root.State.GEPEditor.TerminalControl) === 'undefined'){
+      throw new Error("Missing required class 'TerminalControl'.");
+    }
     if (typeof(root.States.GEPEditor.EditorControl) === 'undefined'){
       throw new Error("Missing required class 'EditorControl'.");
     }
@@ -61,11 +71,13 @@
 	root.R.Input.Keyboard,
 	root.R.Graphics.GlyphEncodedPicture,
 	root.States.GEPEditor.PalControl,
+	root.States.GEPEditor.GlyphControl,
+	root.States.GEPEditor.TerminalControl,
 	root.States.GEPEditor.EditorControl
       );
     }
   }
-})(this, function (FSM, Color, Terminal, Cursor, Keyboard, GlyphEncodedPicture, PalControl, EditorControl) {
+})(this, function (FSM, Color, Terminal, Cursor, Keyboard, GlyphEncodedPicture, PalControl, GlyphControl, TerminalControl, EditorControl) {
 
 
 
@@ -78,98 +90,19 @@
       throw new TypeError("Argument <keyboard> expected to be a Keyboard instance.");
     }
 
-    var gep = null;
-    var offset = { // Offset of the "camera" viewing the GEP image.
-      c: 0,
-      r: 0
-    };
-
-    var activeScreen = 1; // 0 = palette select | 1 = image painter | 2 = glyph select | 3 = terminal input (only accessible via CTRL+~ combo)
-
     var activeGlyph = 0;
+    var activeFG = null;
+    var activeBG = null;
 
     var ctrlPalette = new PalControl(keyboard);
+    var ctrlGlyph = new GlyphControl(terminal, keyboard);
     var ctrlEditor = new EditorControl(keyboard);
-
-    var termcmd = null;
-    var termmsg = null;
-    var termwarning = null;
-    var termerror = null;
+    var ctrlTerminal = new TerminalControl(keyboard);
 
     var framecursor = null;
-    var gepcursor = null;
-    var palcursor = null;
-    var glyphcursor = null;
-    var uicursor = null;
 
     var focus = false;
     var redrawFrame = true;
-    var redrawGlyphs = true;
-    var redrawUI = true;
-
-    function ActiveScreen(screen){
-      if (typeof(screen) === 'number'){
-	if (screen >= 0 && screen < 3){
-	  activeScreen = Math.floor(screen);
-	  switch (activeScreen){
-	    case 0:
-	    ctrlEditor.activate(false);
-	    ctrlPalette.activate(true); break;
-	    case 1:
-	    ctrlPalette.activate(false);
-	    ctrlEditor.activate(true); break;
-	  }; 
-	} else if (screen === 3){
-	  ctrlPalette.activate(false);
-	  ctrlEditor.activate(false);
-          activeScreen = 3;
-	}
-      }
-      return activeScreen;
-    }
-
-
-    function processTerminalCommand(cmd){
-      var args = null;
-      var index = null;
-      var r = 0;
-      var g = 0;
-      var b = 0;
-      
-      cmd = cmd.split(":");
-      if (cmd.length === 1){
-        switch(cmd[0]){
-        case "\\i":
-          termmsg = "Columns: " + gep.width.toString() + " | rows: " + gep.height.toString();
-          break;
-	case "\\pal16":
-	  if (ctrlPalette.processGet16BitPaletteCMD() === true){
-	    if (gep !== null){
-	      gep.storePalette(ctrlPalette.palette);
-	    }
-	  }
-        }
-      } else if (cmd.length === 2){
-        switch(cmd[0]){
-        case "\\fg":
-          ctrlPalette.processSwitchColorCMD(cmd[1], true);
-          break;
-
-        case "\\bg":
-          ctrlPalette.processSwitchColorCMD(cmd[1]);
-          break;
-	case "\\pal16":
-	  if (ctrlPalette.processGet16BitPaletteCMD(cmd[1]) === true){
-	    if (gep !== null){
-	      gep.storePalette(ctrlPalette.palette);
-	    }
-	  }
-	  break;
-        }
-      } else {
-        termwarning = "Command not recognized.";
-      }
-    };
 
     function onRenderResize(newres, oldres){
       framecursor.region = {
@@ -182,8 +115,8 @@
 
       if (ctrlEditor.cursor !== null){
 	ctrlEditor.cursor.region = {
-	  left: 3,
-	  right: newres[0] - 4,
+	  left: 6,
+	  right: newres[0] - 5,
 	  top: 1,
 	  bottom: newres[1] - 4
 	};
@@ -192,58 +125,68 @@
       if (ctrlPalette.cursor !== null){
 	ctrlPalette.cursor.region = {
 	  left: 1,
-	  right: 2,
+	  right: 4,
 	  top: 1,
 	  bottom: newres[1] - 4
 	};
       }
 
-      glyphcursor.region = {
-	left: newres[0] - 2,
-	right: newres[0] - 2,
-	top: 1,
-	bottom: newres[1] - 4
-      };
+      if (ctrlGlyph.cursor !== null){
+	ctrlGlyph.cursor.region = {
+	  left: newres[0] - 3,
+	  right: newres[0] - 2,
+	  top: 1,
+	  bottom: newres[1] - 4
+	};
+      }
 
-      uicursor.region = {
-	left: 1,
-	right: newres[0] - 2,
-	top: newres[1] - 2,
-	bottom: newres[1] - 2
-      };
+      if (ctrlTerminal.cursor !== null){
+	ctrlTerminal.cursor.region = {
+	  left: 1,
+	  right: newres[0] - 2,
+	  top: newres[1] - 2,
+	  bottom: newres[1] - 2
+	};
+      }
 
       redrawFrame = true;
-      redrawGlyphs = true;
-      redrawUI = true;
     };
 
     function OnPaletteBGChange(){
-      redrawUI = true;
-      // TODO: Pass this into the editor control as well
+      activeBG = ctrlPalette.background;
     }
 
     function OnPaletteFGChange(){
-      redrawUI = true;
-      // TODO: Pass this into the editor control as well
+      activeFG = ctrlPalette.foreground;
     }
 
     function OnPaletteChange(){
-      redrawUI = true;
+      activeBG = ctrlPalette.background;
+      activeFG = ctrlPalette.foreground;
+    }
+
+    function OnGlyphChange(){
+      activeGlyph = ctrlGlyph.glyph;
     }
 
     function RenderFrame(cur){
       var rows = cur.rows;
       var columns = cur.columns;
+
+      var coll1 = 0;
+      var coll2 = 5;
+      var colr1 = columns - 4;
+      var colr2 = columns - 1;
       
       cur.c = 0;
       cur.r = 0;
       var line = new Array(columns);
       for (var c = 0; c < columns; c++){
-	if (c === 0){
+	if (c === coll1){
 	  line[c] = parseInt("DA", 16);
-	} else if (c === 3 || c === columns - 3){
+	} else if (c === coll2 || c === colr1){
 	  line[c] = parseInt("C2", 16);
-	} else if (c === columns - 1){
+	} else if (c === colr2){
 	  line[c] = parseInt("BF", 16);
 	} else {
 	  line[c] = parseInt("C4", 16);
@@ -254,162 +197,144 @@
       var vlinecode = parseInt("B3", 16);
       for (var r=1; r < rows-3; r++){
 	cur.r = r;
-	cur.c = 0;
+	cur.c = coll1;
 	cur.set(vlinecode);
-	cur.c = 3;
+	cur.c = coll2;
 	cur.set(vlinecode);
-	cur.c = columns - 3;
+	cur.c = colr1;
 	cur.set(vlinecode);
-	cur.c = columns - 1;
+	cur.c = colr2;
 	cur.set(vlinecode);
       }
 
       for (c=0; c < columns; c++){
-	if (c === 0){
+	if (c === coll1){
 	  line[c] = parseInt("C3", 16);
-	} else if (c === 3 || c === columns - 3){
+	} else if (c === coll2 || c === colr1){
 	  line[c] = parseInt("C1", 16);
-	} else if (c === columns - 1){
+	} else if (c === colr2){
 	  line[c] = parseInt("B4", 16);
 	} else {
 	  line[c] = parseInt("C4", 16);
 	}
       }
-      cur.c = 0;
+      cur.c = coll1;
       cur.r = rows - 3;
       cur.dataOut(line);
 
-      cur.c = 0;
+      cur.c = coll1;
       cur.r = rows - 2;
       cur.set(vlinecode);
       cur.c = columns - 1;
       cur.set(vlinecode);
 
       for (c=0; c < columns; c++){
-	if (c === 0){
+	if (c === coll1){
 	  line[c] = parseInt("C0", 16);
-	} else if (c === columns - 1){
+	} else if (c === colr2){
 	  line[c] = parseInt("D9", 16);
 	} else {
 	  line[c] = parseInt("C4", 16);
 	}
       }
-      cur.c = 0;
+      cur.c = coll1;
       cur.r = rows - 1;
       cur.dataOut(line);
-    };
-
-    function renderGlyphs(cur, index){
-      var rows = cur.rows;
-      var midrow = Math.floor(rows*0.5);
-      var length = terminal.glyph.elements;
-      if (index < 0 || index >= terminal.glyph.elements){return;} // Invalid data. Do nothing.
-
-      var goffset = 0;
-      if (index > midrow && index < length - midrow){
-        goffset = index - midrow;
-      } else if (length > midrow && index > length-midrow){
-        goffset = length - rows;
-      }
-
-      for (var r=0; r < rows; r++){
-        var gindex = r + goffset;
-        if (gindex >= length){break;}
-        
-        cur.c = 0;
-        cur.r = r;
-
-        if (gindex === index){
-          cur.set(gindex, Cursor.WRAP_TYPE_NOWRAP, {background:"#FFFF00"});
-        } else {
-          cur.set(gindex, Cursor.WRAP_TYPE_NOWRAP, {background:null});
-        }
-      }
     };
 
 
     function onKeyDown(code){
       if (Keyboard.CodeSameAsName(code, "escape") === true){
-        if (termcmd === null){
+        if (ctrlTerminal.active === false){
 	  fsm.activateState("MainMenuState");
         } else {
-	  ActiveScreen(1);
-          termcmd = null;
-          termmsg = null;
-          termerror = null;
-          termwarning = null;
-          redrawUI = true;
+	  ctrlEditor.activate(true);
         }
 
 	// Terminal trumps all over inputs...
-      } else if (activeScreen === 3){ // Special case for Terminal.
-        if (Keyboard.CodeSameAsName(code, "backspace") === true && termcmd !== null && termcmd !== ""){
-          termcmd = termcmd.substr(0, termcmd.length-1);
-          redrawUI = true;
-        }
-
-	// Check rest of input...
-      } else {
+      } else if (ctrlTerminal.active === false){
 	if (Keyboard.CodeSameAsName(code, "tab") === true){
-	  activeScreen += 1;
-	  if (activeScreen === 3){
-	    activeScreen = 0;
+	  if (ctrlPalette.active === true){
+	    ctrlEditor.activate(true);
+	  } else if (ctrlEditor.active === true){
+	    ctrlGlyph.activate(true);
+	  } else if (ctrlGlyph.active === true){
+	    ctrlPalette.activate(true);
 	  }
-	  ActiveScreen(activeScreen);
 	} else if (keyboard.activeCombo("shift+tab") === true){
-	  activeScreen -= 1;
-	  if (activeScreen < 0){
-	    activeScreen = 2;
+	  if (ctrlPalette.active === true){
+	    ctrlGlyph.activate(true);
+	  } else if (ctrlGlyph.active === true){
+	    ctrlEditor.activate(true);
+	  } else if (ctrlEditor.active === true){
+	    ctrlPalette.activate(true);
 	  }
-	  ActiveScreen(activeScreen);
-	}
-      }
-    };
-
-    function onPrintableChar(ch){
-      if (activeScreen === 3 && termcmd !== null){
-	if (ch !== "\t"){
-          var finish = (ch === "\r" || ch === "\n");
-          if (finish === false){
-            termcmd += ch;
-          } else {
-            processTerminalCommand(termcmd);
-            termcmd = "";
-          }
-          redrawUI = true;
 	}
       }
     };
 
     function onCtrlTildaCombo(){
-      termcmd = "";
-      ActiveScreen(3);
-      redrawUI = true;
+      ctrlTerminal.activate(true);
     };
 
 
     this.enter = function(){
       framecursor = new Cursor(terminal);
+
       ctrlPalette.cursor = new Cursor(terminal);
       ctrlPalette.on("fgchange", OnPaletteFGChange);
       ctrlPalette.on("bgchange", OnPaletteBGChange);
       ctrlPalette.on("palettechange", OnPaletteChange);
+      ctrlPalette.on("activating", function(){
+	ctrlEditor.activate(false);
+	ctrlGlyph.activate(false);
+	ctrlTerminal.activate(false);
+      });
+
       ctrlEditor.cursor = new Cursor(terminal);
-      glyphcursor = new Cursor(terminal);
-      uicursor = new Cursor(terminal);
+      ctrlEditor.on("activating", function(){
+	ctrlPalette.activate(false);
+	ctrlGlyph.activate(false);
+	ctrlTerminal.activate(false);
+      });
+
+      ctrlGlyph.cursor = new Cursor(terminal);
+      ctrlGlyph.on("glyphchange", OnGlyphChange);
+      ctrlGlyph.on("activating", function(){
+	ctrlEditor.activate(false);
+	ctrlPalette.activate(false);
+	ctrlTerminal.activate(false);
+      });
+
+      ctrlTerminal.cursor = new Cursor(terminal);
+      ctrlTerminal.on("activating", function(){
+	ctrlEditor.activate(false);
+	ctrlGlyph.activate(false);
+	ctrlPalette.activate(false);
+      });
+      ctrlTerminal.on("setpalette16", function(args){
+	ctrlPalette.processGet16BitPaletteCMD(args);
+      });
+      ctrlTerminal.on("switchpalettecolor", function(args, fg){
+	ctrlPalette.processSwitchColorCMD(args, fg);
+      });
+      ctrlTerminal.on("switchglyphindex", function(index){
+	if (index < 0 || index >= terminal.glyph.elements){
+	  ctrlTerminal.displayError("Glyph index out of bounds.");
+	}
+	ctrlGlyph.glyph = index;
+      });
+      ctrlTerminal.on("requestinfo", function(type){
+	if (type === "glyph"){
+	  ctrlTerminal.displayMessage("Glyph Index: " + ctrlGlyph.glyph.toString());
+	}
+      });
     };
 
     this.getFocus = function(){
       terminal.on("renderResize", onRenderResize);
       onRenderResize([terminal.columns, terminal.rows], null);
-      if (gep === null){
-	gep = new GlyphEncodedPicture();
-        if (ctrlPalette.palette.length > 0){
-          gep.storePalette(ctrlPalette.palette);
-        }
-      }
       keyboard.on("keydown", onKeyDown);
-      keyboard.on("printcode", onPrintableChar);
       keyboard.onCombo("ctrl+`", {on:onCtrlTildaCombo});
       focus = true;
     };
@@ -417,21 +342,32 @@
     this.looseFocus = function(){
       terminal.unlisten("renderResize", onRenderResize);
       keyboard.unlisten("keydown", onKeyDown);
-      keyboard.unlisten("printcode", onPrintableChar);
       keyboard.unlistenCombo("ctrl+`", {on:onCtrlTildaCombo});
       focus = false;
     };
 
     this.exit = function(){
       framecursor = null;
+
+      ctrlEditor.activate(false);
       ctrlEditor.cursor = null;
-      ctrlPalette.unlisten("fgchange", OnPaletteFGChange);
-      ctrlPalette.unlisten("bgchange", OnPaletteBGChange);
-      ctrlPalette.unlisten("palettechange", OnPaletteChange);
+      ctrlEditor.unlistenAll();
+
+      ctrlPalette.activate(false);
+      //ctrlPalette.unlisten("fgchange", OnPaletteFGChange);
+      //ctrlPalette.unlisten("bgchange", OnPaletteBGChange);
+      //ctrlPalette.unlisten("palettechange", OnPaletteChange);
       ctrlPalette.cursor =  null;
-      glyphcursor = null;
-      uicursor = null;
-      gep = null;
+      ctrlPalette.unlistenAll();
+
+      ctrlGlyph.activate(false);
+      //ctrlGlyph.unlisten("glyphchange", OnGlyphChange);
+      ctrlGlyph.cursor = null;
+      ctrlGlyph.unlistenAll();
+
+      ctrlTerminal.activate(false);
+      ctrlTerminal.cursor = null;
+      ctrlTerminal.unlistenAll();
     };
 
     this.update = function(timestamp, bps){
@@ -443,38 +379,14 @@
 
         ctrlPalette.render();
         ctrlEditor.render();
-
-        if (redrawUI === true){
-	  var activeFG = ctrlPalette.foreground;
-	  var activeBG = ctrlPalette.background;
-          redrawUI = false;
-          uicursor.clear();
-          uicursor.c = 0;
-          uicursor.set(activeGlyph, Cursor.WRAP_TYPE_NOWRAP, {
-            foreground: (activeFG !== null) ? activeFG.hex : null,
-            background: (activeBG !== null) ? activeBG.hex : null
-          });
-
-          uicursor.c = 2;
-          if (termcmd !== null && termerror === null && termwarning === null && termmsg === null){
-            uicursor.textOut("Terminal: ");
-            uicursor.textOut(termcmd, {foreground:"#FFFF00"});
-          } else if (termerror !== null){
-            uicursor.textOut("ERROR: ", {background:"#FF0000"});
-            uicursor.textOut(termerror, {foreground:"#FFFF00", background:"#FF0000"});
-          } else if (termwarning !== null){
-            uicursor.textOut("WARNING: ", {background:"#AAAA00"});
-            uicursor.textOut(termwarning, {foreground:"#000000", background:"#AAAA00"});
-          } else if (termmsg !== null){
-            uicursor.textOut("MESSAGE: ", {foreground:"#0000FF"});
-            uicursor.textOut(termmsg, {foreground:"#0000FF", background:"#00FFFF"});
-          }
-        }
-
-	if (redrawGlyphs === true){
-	  redrawGlyphs = false;
-	  renderGlyphs(glyphcursor, activeGlyph);
-	}
+	ctrlGlyph.render();
+	ctrlTerminal.render(
+	  activeGlyph,
+	  activeFG,
+	  ctrlPalette.foregroundIndex,
+	  activeBG,
+	  ctrlPalette.backgroundIndex
+	);
       }
     };
 

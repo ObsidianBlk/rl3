@@ -240,12 +240,14 @@
 	  return (activeBG !== null) ? palette[activeBG] : null;
 	}
       },
+      "backgroundIndex":{get:function(){return activeBG;}},
 
       "foreground":{
 	get:function(){
 	  return (activeFG !== null) ? palette[activeFG] : null;
 	}
-      }
+      },
+      "foregroundIndex":{get:function(){return activeFG;}}
     });
 
 
@@ -271,7 +273,7 @@
 
       // Render the standard information.
       if (col === 0){
-        cur.c = 0;
+        cur.c = 1;
         cur.r = 0;
         if (index === null){
           cur.set("F".charCodeAt(0), Cursor.WRAP_TYPE_NOWRAP, {foreground:"#FFFF00"});
@@ -279,7 +281,7 @@
           cur.set("F".charCodeAt(0), Cursor.WRAP_TYPE_NOWRAP, {foreground:null});
         }
       } else if (col === 1){
-        cur.c = 1;
+        cur.c = 2;
         cur.r = 0;
         if (index === null){
           cur.set("B".charCodeAt(0), Cursor.WRAP_TYPE_NOWRAP, {foreground:"#FFFF00"});
@@ -288,16 +290,16 @@
         }
       }
 
-      cur.c = col;
+      cur.c = col+1;
       cur.r = 1;
       if (active === true && palctrl === col){
 	if (index === null){
-	  cur.set(parseInt("1E", 16), {foreground:"#FFFF00"});
+	  cur.set(parseInt("1E", 16), Cursor.WRAP_TYPE_NOWRAP, {foreground:"#FFFF00"});
 	} else {
-	  cur.set(parseInt("1F", 16), {foreground:"#FFFF00"});
+	  cur.set(parseInt("1F", 16), Cursor.WRAP_TYPE_NOWRAP, {foreground:"#FFFF00"});
 	}
       } else {
-	cur.set("-".charCodeAt(0));
+	cur.set("-".charCodeAt(0), Cursor.WRAP_TYPE_NOWRAP, {foreground:null});
       }
 
 
@@ -307,7 +309,7 @@
       if (index !== null){
         if (index > midrow && index < palette.length - midrow){
           paloffset = index - midrow;
-        } else if (palette.length > midrow && index > palette.length-midrow){
+        } else if (palette.length > midrow && index >= palette.length-midrow){
           paloffset = palette.length - (rows-2);
         }
       }
@@ -316,29 +318,41 @@
         for (var r=0; r < (rows-2); r++){
           var pindex = r + paloffset;
           if (pindex >= palette.length){break;}
-          
-          cur.c = col;
-          cur.r = r + 2;
 
           if (pindex === index){
-            cur.set(9, Cursor.WRAP_TYPE_NOWRAP, {foreground:"#FFFF00", background:palette[pindex].hex});
+	    if (col === 0){
+	      cur.r = r + 2;
+	      cur.c = 0;
+              cur.set(16, Cursor.WRAP_TYPE_NOWRAP, (active===true) ? {foreground:"#FFFF00"} : {foreground:null});
+	    } else if (col === 1){
+	      cur.r = r + 2;
+	      cur.c = 3;
+	      cur.set(17, Cursor.WRAP_TYPE_NOWRAP, (active===true) ? {foreground:"#FFFF00"} : {foreground:null});
+	    }
           } else {
-            cur.set(" ".charCodeAt(0), Cursor.WRAP_TYPE_NOWRAP, {background:palette[pindex].hex});
-          }
+	    cur.r = r + 2;
+	    cur.c = (col === 0) ? 0 : 3;;
+	    cur.set(" ".charCodeAt(0), Cursor.WRAP_TYPE_NOWRAP, {foreground:null, background:null});
+	  }
+	  cur.r = r + 2;
+	  cur.c = (col === 0) ? 1 : 2;
+          cur.set(" ".charCodeAt(0), Cursor.WRAP_TYPE_NOWRAP, {background:palette[pindex].hex});
         }
       }
     };
 
 
-    function OnKeyDown(code){
+    var OnKeyDown = (function(code){
       if (Keyboard.CodeSameAsName(code, "up") === true){
 	if (palctrl === 0){
 	  if (activeFG !== null){
 	    if (activeFG === 0){
 	      activeFG = null;
+	      this.emit("fgchange");
 	      dirty = true;
 	    } else {
 	      activeFG -= 1;
+	      this.emit("fgchange");
 	      dirty = true;
 	    }
 	  }
@@ -346,9 +360,11 @@
 	  if (activeBG !== null){
 	    if (activeBG === 0){
 	      activeBG = null;
+	      this.emit("bgchange");
 	      dirty = true;
 	    } else {
 	      activeBG -= 1;
+	      this.emit("bgchange");
 	      dirty = true;
 	    }
 	  }
@@ -358,17 +374,21 @@
 	if (palctrl === 0){
 	  if (activeFG === null){
 	    activeFG = 0;
+	    this.emit("fgchange");
 	    dirty = true;
 	  } else if (activeFG < palette.length - 1){
 	    activeFG += 1;
+	    this.emit("fgchange");
 	    dirty = true;
 	  }
 	} else {
 	  if (activeBG === null){
 	    activeBG = 0;
+	    this.emit("bgchange");
 	    dirty = true;
 	  } else if (activeBG < palette.length - 1){
 	    activeBG += 1;
+	    this.emit("bgchange");
 	    dirty = true;
 	  }
 	}
@@ -383,7 +403,7 @@
 	  dirty = true;
 	}
       }
-    }
+    }).bind(this);
 
 
 
@@ -394,6 +414,7 @@
 
       active = enable;
       if (active === true){
+	this.emit("activating");
 	keyboard.on("keydown", OnKeyDown);
       } else {
 	keyboard.unlisten("keydown", OnKeyDown);

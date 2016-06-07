@@ -79,6 +79,16 @@
       }
     };
 
+    this.unlistenEvent = function(eventName){
+      if (eventName in event){
+	delete event[eventName];
+      }
+    };
+
+    this.unlistenAll = function(){
+      event = {};
+    };
+
     this.emit = function(eventName){
       if (typeof(event[eventName]) !== 'undefined'){
 	var e = event[eventName];

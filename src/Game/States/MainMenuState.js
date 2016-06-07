@@ -67,6 +67,7 @@
 	right: newres[0]-1,
 	bottom: newres[1]-1
       };
+      cursor.clear();
 
       update = true;
       self.update();
