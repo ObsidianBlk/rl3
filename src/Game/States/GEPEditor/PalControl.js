@@ -187,7 +187,8 @@
   function PalControl(keyboard){
     Emitter.call(this);
     var cur = null;
-    var palette = [];
+
+    var gep = null;
 
     var active = false;
     var dirty = true;
@@ -226,47 +227,27 @@
 	  }
 	}
       },
-      
-      "palette":{
-	get:function(){return palette;}
+
+      "gep":{
+        get:function(){return gep;},
+        set:function(g){
+          if (g === null || g instanceof GlyphEncodedPicture){
+            if (g !== gep){
+              gep = g;
+              dirty = true;
+            }
+          }
+        }
       },
 
       "active":{
 	get:function(){return active;}
-      },
-
-      "background":{
-	get:function(){
-	  return (activeBG !== null) ? palette[activeBG] : null;
-	}
-      },
-      "backgroundIndex":{get:function(){return activeBG;}},
-
-      "foreground":{
-	get:function(){
-	  return (activeFG !== null) ? palette[activeFG] : null;
-	}
-      },
-      "foregroundIndex":{get:function(){return activeFG;}}
+      }
     });
 
 
-    function paletteIndexFromColor(color){
-      for (var i=0; i < palette.length; i++){
-        if (palette[i].eq(color) === true){
-          return i;
-        }
-      }
-      if (palette.length < 256){
-        palette.push(color);
-        return palette.length - 1;
-      }
-      return -1;
-    };
-
-
     function RenderPalCol(col, index){
-      if (cur === null){return;}
+      if (cur === null || gep === null){return;}
       var rows = cur.rows-2;
       var midrow = Math.floor((rows-2)*0.5);
       if (col < 0 || col >= cur.columns){return;} // Invalid data. Do nothing.
@@ -303,21 +284,21 @@
       }
 
 
-      if (index !== null && (index < 0 || index >= palette.length)){return;} // Invalid data. Do nothing.
+      if (index !== null && (index < 0 || index >= gep.paletteSize)){return;} // Invalid data. Do nothing.
 
       var paloffset = 0;
       if (index !== null){
-        if (index > midrow && index < palette.length - midrow){
+        if (index > midrow && index < gep.paletteSize - midrow){
           paloffset = index - midrow;
-        } else if (palette.length > midrow && index >= palette.length-midrow){
-          paloffset = palette.length - (rows-2);
+        } else if (gep.paletteSize > midrow && index >= gep.paletteSize-midrow){
+          paloffset = gep.paletteSize - (rows-2);
         }
       }
 
-      if (palette.length > 0){
+      if (gep.paletteSize > 0){
         for (var r=0; r < (rows-2); r++){
           var pindex = r + paloffset;
-          if (pindex >= palette.length){break;}
+          if (pindex >= gep.paletteSize){break;}
 
           if (pindex === index){
 	    if (col === 0){
@@ -336,7 +317,7 @@
 	  }
 	  cur.r = r + 2;
 	  cur.c = (col === 0) ? 1 : 2;
-          cur.set(" ".charCodeAt(0), Cursor.WRAP_TYPE_NOWRAP, {background:palette[pindex].hex});
+          cur.set(" ".charCodeAt(0), Cursor.WRAP_TYPE_NOWRAP, {background:gep.getPaletteColor(pindex).hex});
         }
       }
     };
@@ -344,50 +325,52 @@
 
     var OnKeyDown = (function(code){
       if (Keyboard.CodeSameAsName(code, "up") === true){
+        if (gep === null){return;}
 	if (palctrl === 0){
-	  if (activeFG !== null){
-	    if (activeFG === 0){
-	      activeFG = null;
+	  if (gep.foregroundIndex !== null){
+	    if (gep.foregroundIndex === 0){
+	      gep.foregroundIndex = null;
 	      this.emit("fgchange");
 	      dirty = true;
 	    } else {
-	      activeFG -= 1;
+	      gep.foregroundIndex -= 1;
 	      this.emit("fgchange");
 	      dirty = true;
 	    }
 	  }
 	} else {
-	  if (activeBG !== null){
-	    if (activeBG === 0){
-	      activeBG = null;
+	  if (gep.backgroundIndex !== null){
+	    if (gep.backgroundIndex === 0){
+	      gep.backgroundIndex = null;
 	      this.emit("bgchange");
 	      dirty = true;
 	    } else {
-	      activeBG -= 1;
+	      gep.backgroundIndex -= 1;
 	      this.emit("bgchange");
 	      dirty = true;
 	    }
 	  }
 	}
       } else if (Keyboard.CodeSameAsName(code, "down") === true){
-	if (palette.length <= 0){return;} // Nothing to do without a palette :p
+        if (gep === null){return;}
+	if (gep.paletteSize <= 0){return;} // Nothing to do without a palette :p
 	if (palctrl === 0){
-	  if (activeFG === null){
-	    activeFG = 0;
+	  if (gep.foregroundIndex === null){
+	    gep.foregroundIndex = 0;
 	    this.emit("fgchange");
 	    dirty = true;
-	  } else if (activeFG < palette.length - 1){
-	    activeFG += 1;
+	  } else if (gep.foregroundIndex < gep.paletteSize - 1){
+	    gep.foregroundIndex += 1;
 	    this.emit("fgchange");
 	    dirty = true;
 	  }
 	} else {
-	  if (activeBG === null){
-	    activeBG = 0;
+	  if (gep.backgroundIndex === null){
+	    gep.backgroundIndex = 0;
 	    this.emit("bgchange");
 	    dirty = true;
-	  } else if (activeBG < palette.length - 1){
-	    activeBG += 1;
+	  } else if (gep.backgroundIndex < gep.paletteSize - 1){
+	    gep.backgroundIndex += 1;
 	    this.emit("bgchange");
 	    dirty = true;
 	  }
@@ -424,21 +407,22 @@
 
 
     this.processGet16BitPaletteCMD = function(arg){
+      if (gep === null){return false;}
       if (typeof(arg) === 'undefined'){
-	palette = TermPalette(0);
+	gep.storePalette(TermPalette(0));
       } else {
 	if (arg === "vga" || arg === "0"){
-	  palette = TermPalette(0);
+	  gep.storePalette( TermPalette(0));
 	} else if (arg === 'windows' || arg === "1"){
-	  palette = TermPalette(1);
+	  gep.storePalette(TermPalette(1));
 	} else if (arg === 'terminal' || arg === "2"){
-	  palette = TermPalette(2);
+	  gep.storePalette(TermPalette(2));
 	} else if (arg === 'putty' || arg === "3"){
-	  palette = TermPalette(3);
+	  gep.storePalette(TermPalette(3));
 	} else if (arg === 'mirc' || arg === "4"){
-	  palette = TermPalette(4);
+	  gep.storePalette(TermPalette(4));
 	} else if (arg === 'xterm' || arg === "5"){
-	  palette = TermPalette(5);
+	  gep.storePalette(TermPalette(5));
 	} else {
 	  cmdWarning = "16Color Palette '" + arg + "' unknown.";
 	  return false;
@@ -450,17 +434,19 @@
     };
 
     this.processSwitchColorCMD = function(args, fg){
+      if (gep === null){return false;}
+      
       fg = (fg === true) ? true : false;
       var index = null;
       cmdError = null;
       cmdWarning = null;
 
-      var palsize = palette.length;
+      var palsize = gep.paletteSize;
       args = args.split(",");
       if (args.length === 1){
         args[0] = args[0].trim();
         if (args[0].startsWith("#") && args[0].length === 7){
-          index = paletteIndexFromColor(new Color(args[0]));
+          index = gep.getPaletteIndex(new Color(args[0]));
         } else {
           index = parseInt(args[0]);
           if (Number.isNaN(index)){
@@ -477,12 +463,12 @@
           if (r > 255 || g > 255 || b > 255){
             cmdError = "Value out of bounds.";
           } else {
-            index = paletteIndexFromColor(new Color({r:r, g:g, b:b}));
+            index = gep.getPaletteIndex(new Color({r:r, g:g, b:b}));
           }
         }
       }
 
-      if (palette.length !== palsize){
+      if (gep.paletteSize !== palsize){
         this.emit("palettechange");
       }
       
@@ -490,19 +476,19 @@
         if (index < 0){
           dirty = true;
           if (fg === true){
-            activeFG = null;
+            gep.foregroundIndex = null;
             this.emit("fgchange");
           } else {
-            activeBG = null;
+            gep.backgroundIndex = null;
             this.emit("bgchange");
           }
           return true;
-        } else if (index < palette.length){
+        } else if (index < gep.paletteSize){
           if (fg === true){
-            activeFG = index;
+            gep.foregroundIndex = index;
             this.emit("fgchange");
           } else {
-            activeBG = index;
+            gep.backgroundIndex = index;
             this.emit("bgchange");
           }
 	  dirty = true;
@@ -518,8 +504,8 @@
     this.render = function(){
       if (cur === null || dirty === false){return;}
       dirty = false;
-      RenderPalCol(0, activeFG);
-      RenderPalCol(1, activeBG);
+      RenderPalCol(0, gep.foregroundIndex);
+      RenderPalCol(1, gep.backgroundIndex);
     };
   };
   PalControl.prototype.__proto__ = Emitter.prototype;

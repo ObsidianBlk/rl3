@@ -94,6 +94,8 @@
     var activeFG = null;
     var activeBG = null;
 
+    var gep = null;
+
     var ctrlPalette = new PalControl(keyboard);
     var ctrlGlyph = new GlyphControl(terminal, keyboard);
     var ctrlEditor = new EditorControl(keyboard);
@@ -166,7 +168,9 @@
     }
 
     function OnGlyphChange(){
-      activeGlyph = ctrlGlyph.glyph;
+      if (gep !== null){
+        gep.glyphIndex = ctrlGlyph.glyph;
+      }
     }
 
     function RenderFrame(cur){
@@ -279,9 +283,11 @@
 
 
     this.enter = function(){
+      gep = new GlyphEncodedPicture();
       framecursor = new Cursor(terminal);
 
       ctrlPalette.cursor = new Cursor(terminal);
+      ctrlPalette.gep = gep;
       ctrlPalette.on("fgchange", OnPaletteFGChange);
       ctrlPalette.on("bgchange", OnPaletteBGChange);
       ctrlPalette.on("palettechange", OnPaletteChange);
@@ -351,6 +357,7 @@
 
       ctrlEditor.activate(false);
       ctrlEditor.cursor = null;
+      ctrlEditor.gep = gep;
       ctrlEditor.unlistenAll();
 
       ctrlPalette.activate(false);
@@ -358,6 +365,7 @@
       //ctrlPalette.unlisten("bgchange", OnPaletteBGChange);
       //ctrlPalette.unlisten("palettechange", OnPaletteChange);
       ctrlPalette.cursor =  null;
+      ctrlPalette.gep = null;
       ctrlPalette.unlistenAll();
 
       ctrlGlyph.activate(false);
@@ -368,6 +376,8 @@
       ctrlTerminal.activate(false);
       ctrlTerminal.cursor = null;
       ctrlTerminal.unlistenAll();
+
+      gep = null;
     };
 
     this.update = function(timestamp, bps){
@@ -376,17 +386,14 @@
 	  redrawFrame = false;
 	  RenderFrame(framecursor);
 	}
+        
+        ctrlEditor.update(timestamp);
 
+        
         ctrlPalette.render();
         ctrlEditor.render();
 	ctrlGlyph.render();
-	ctrlTerminal.render(
-	  activeGlyph,
-	  activeFG,
-	  ctrlPalette.foregroundIndex,
-	  activeBG,
-	  ctrlPalette.backgroundIndex
-	);
+	ctrlTerminal.render(gep);
       }
     };
 

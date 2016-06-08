@@ -58,20 +58,26 @@
 
   function EditorControl(keyboard){
     Emitter.call(this);
+    
     var cur = null;
     var gep = null;
     var active = false;
     var dirty = true;
+
+    var pos = {
+      c: 0,
+      r: 0
+    };
+    
+    var cursorState = 0; // 0 = off | 1 = on ... surprise
+    var elapsedTime = 0;
+    var lastTimestamp = null;
 
     function OnRegionResize(region){dirty = true;}
 
     Object.defineProperties(this, {
       "dirty":{
 	get:function(){return dirty;}
-      },
-      
-      "image":{
-	get:function(){return gep;}
       },
 
       "active":{
@@ -96,9 +102,23 @@
 	    }
 	  }
 	}
+      },
+      
+      "gep":{
+	get:function(){return gep;},
+        set:function(g){
+          if (g === null || g instanceof GlyphEncodedPicture){
+            if (g !== gep){
+              gep = g;
+              dirty = true;
+            }
+          }
+        }
       }
+      
     });
 
+    
     function OnKeyDown(code){
 
     }
@@ -119,9 +139,38 @@
       dirty = true;
     };
 
+    
     this.render = function(){
       if (cur === null || dirty === false){return;}
       dirty = false;
+
+      if (gep !== null){
+        // TODO: Render the GEP.
+      }
+
+      cur.c = pos.c;
+      cur.r = pos.r;
+      if (cursorState === 1){
+        cur.set("|".charCodeAt(0), Cursor.WRAP_TYPE_NOWRAP, {foreground:"#FFFFFF", background:"#000000"});
+      } else {
+        cur.set(" ".charCodeAt(0), Cursor.WRAP_TYPE_NOWRAP, {foreground:null, background:null});
+        // TODO: Should redraw GEP "pix" at this position.
+      }
+    };
+
+    this.update = function(timestamp){
+      elapsedTime = (lastTimestamp === null) ? 0 : timestamp - lastTimestamp;
+      lastTimestamp = timestamp;
+
+      while (elapsedTime/1000 >= 1){
+        elapsedTime -= 1000;
+        if (cursorState === 0){
+          cursorState = 1;
+        } else {
+          cursorState = 0;
+        }
+        dirty = true;
+      }
     };
   }
   EditorControl.prototype.__proto__ = Emitter.prototype;

@@ -199,9 +199,15 @@
     }
 
 
-    this.render = function(glyphIndex, fg, fgi, bg, bgi){
+    this.render = function(gep){
       if (cur === null){return;}
       dirty = false;
+
+      var glyphIndex = gep.glyphIndex;
+      var fg = gep.foreground;
+      var bg = gep.background;
+      var fgi = gep.foregroundIndex;
+      var bgi = gep.backgroundIndex;
 
       cur.clear();
       cur.c = cur.columns - 15;

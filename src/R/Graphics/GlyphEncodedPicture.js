@@ -154,6 +154,75 @@
 
       "paletteSize":{
 	get:function(){return palette.length;}
+      },
+
+      "palette":{
+        get:function(){
+          if (palette.length > 0){
+            return palette.map(function(item){
+              return new Color(item);
+            });
+          }
+          return [];
+        }
+      },
+
+      "foreground":{
+        get:function(){
+          return (defaultFG !== null) ? new Color(palette[defaultFG]) : null;
+        }
+      },
+
+      "foregroundIndex":{
+        get:function(){return defaultFG;},
+        set:function(fg){
+          if (fg === null){
+            defaultFG = null;
+          } else if (typeof(fg) === 'number'){
+            if (fg < 0 || fg >= palette.length){
+              throw new RangeError("Palette index is out of bounds.");
+            }
+            defaultFG = Math.floor(fg);
+          } else {
+            throw new TypeError("Expected an integer index value.");
+          }
+        }
+      },
+
+      "background":{
+        get:function(){
+          return (defaultBG !== null) ? new Color(palette[defaultBG]) : null;
+        }
+      },
+
+      "backgroundIndex":{
+        get:function(){return defaultBG;},
+        set:function(bg){
+          if (typeof(bg) === 'number'){
+            if (bg === null){
+              defaultBG = bg;
+            } else if (bg < 0 || bg >= palette.length){
+              throw new RangeError("Palette index is out of bounds.");
+            }
+            defaultBG = Math.floor(bg);
+          } else {
+            throw new TypeError("Expected an integer index value.");
+          }
+        }
+      },
+
+      "glyphIndex":{
+        get:function(){return defaultGlyph;},
+        set:function(gi){
+          if (typeof(gi) === 'number'){
+            if (gi < 0){
+              throw new RangeError("Glyph index is out of bounds.");
+            }
+            defaultGlyph = gi;
+          } else {
+            throw new TypeError("Expected an integer index value.");
+          }
+        }
       }
     });
 
@@ -188,8 +257,12 @@
 	  return i;
 	}
       }
-      palette.push(color);
-      return palette.length-1;
+
+      if (palette.length < 256){
+        palette.push(color);
+        return palette.length-1;
+      }
+      return -1;
     };
 
 
@@ -214,6 +287,7 @@
 	throw new TypeError("Expected array of palette colors.");
       }
 
+      var oldlength = palette.length;
       for (var i=0; i < npal.length; i++){
 	if (i >= palette.length){
 	  palette.push(new Color(npal[i]));
@@ -221,7 +295,15 @@
 	  palette[i] = new Color(npal[i]);
 	}
       }
-      if (npal.length < palette.length){
+
+      if (npal.length < oldlength){
+        if (defaultFG >= npal.length){
+          defaultFG = null;
+        }
+        if (defaultBG >= npal.length){
+          defaultBG = null;
+        }
+        
 	palette.splice(npal.length, palette.length - npal.length);
 	if (gdat.length > 0){
 	  gdat.forEach(function(row){
@@ -302,6 +384,7 @@
       }
     };
 
+    
     this.setPixColor = function(c, r, pal, coordExact){
       if (coordExact !== true){
 	c += region.left;
