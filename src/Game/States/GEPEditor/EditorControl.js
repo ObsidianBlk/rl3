@@ -68,6 +68,13 @@
       c: 0,
       r: 0
     };
+
+    var offset = {
+      c: 0,
+      r: 0
+    };
+
+    var shiftJumpSize = 10; // How far the cursor will jump if shift is down.
     
     var cursorState = 0; // 0 = off | 1 = on ... surprise
     var elapsedTime = 0;
@@ -110,17 +117,91 @@
           if (g === null || g instanceof GlyphEncodedPicture){
             if (g !== gep){
               gep = g;
+	      offset.c = 0;
+	      offset.r = 0;
               dirty = true;
             }
           }
         }
+      },
+
+      "shiftJumpSize":{
+	get:function(){return shiftJumpSize;},
+	set:function(size){
+	  if (typeof(size) === 'number'){
+	    if (size <= 0){throw new RangeError("Out of range.");}
+	    shiftJumpSize = Math.floor(size);
+	  } else {throw new TypeError("Number value expected.");}
+	}
       }
       
     });
 
     
     function OnKeyDown(code){
+      var shift = 1;
+      if (Keyboard.CodeSameAsName(code, "space") === true){
+	if (gep !== null){
+	  gep.setPix(offset.c + pos.c, offset.r + pos.r);
+	  dirty = true;
+	}
+      } else if (Keyboard.CodeSameAsName(code, "up") === true){
+	if (pos.r > 0){
+	  UnrenderCursor();
+	  elapsedTime = 0;
 
+	  if (keyboard.activeCombo("shift+up") === true){
+	    shift = (pos.r - shiftJumpSize >= 0) ? shiftJumpSize : pos.r;
+	  }
+	  pos.r -= shift;
+	  if (gep !== null && gep.height > 0){
+	    offset.r += shift;
+	  }
+	  RenderCursor();
+	}
+      } else if (Keyboard.CodeSameAsName(code, "down") === true){
+	if (pos.r < cur.rows-1){
+	  UnrenderCursor();
+	  elapsedTime = 0;
+
+	  if (keyboard.activeCombo("shift+down") === true){
+	    shift = (pos.r + shiftJumpSize < cur.rows) ? shiftJumpSize : (cur.rows-1) - pos.r;
+	  }
+	  pos.r += shift;
+	  if (gep !== null && gep.height > 0){
+	    offset.r -= shift;
+	  }
+	  RenderCursor();
+	}
+      } else if (Keyboard.CodeSameAsName(code, "left") === true){
+	if (pos.c > 0){
+	  UnrenderCursor();
+	  elapsedTime = 0;
+
+	  if (keyboard.activeCombo("shift+left") === true){
+	    shift = (pos.c - shiftJumpSize >= 0) ? shiftJumpSize : pos.c;
+	  }
+	  pos.c -= shift;
+	  if (gep !== null && gep.width > 0){
+	    offset.c -= shift;
+	  }
+	  RenderCursor();
+	}
+      } else if (Keyboard.CodeSameAsName(code, "right") === true){
+	if (pos.c < cur.columns-1){
+	  UnrenderCursor();
+	  elapsedTime = 0;
+
+	  if (keyboard.activeCombo("shift+right") === true){
+	    shift = (pos.c + shiftJumpSize < cur.columns) ? shiftJumpSize : (cur.columns-1) - pos.c;
+	  }
+	  pos.c += shift;
+	  if (gep !== null && gep.width > 0){
+	    offset.c += shift;
+	  }
+	  RenderCursor();
+	}
+      }
     }
 
 
@@ -134,42 +215,90 @@
 	keyboard.on("keydown", OnKeyDown);
       } else {
 	keyboard.unlisten("keydown", OnKeyDown);
+	cursorState = 0;
       }
 
       dirty = true;
     };
 
+
+    var RenderCursor = (function(){
+      var pix = [219, "#FFFF00", "#000000"];
+      if (gep !== null){
+	var anchor = gep.anchor;
+	anchor.c = anchor.c + offset.c + pos.c;
+	anchor.r = anchor.r + offset.r + pos.r;
+	var gpix = null;
+	try{
+	  gpix = gep.getPix(anchor.c, anchor.r, true);
+	} catch (e) {gpix = null; /* Nothing to do. */}
+
+	if (gpix !== null){
+	  pix[0] = gpix[0];
+	}
+      }
+
+      cur.c = pos.c;
+      cur.r = pos.r;
+      cur.set(pix[0], Cursor.WRAP_TYPE_NOWRAP, {foreground:pix[1], background:pix[2]});
+    }).bind(this);
+
+    var UnrenderCursor = (function(){
+      var pix = [0, null, null];
+      if (gep !== null){
+	var anchor = gep.anchor;
+	anchor.c = anchor.c + offset.c + pos.c;
+	anchor.r = anchor.r + offset.r + pos.r;
+	var gpix = null;
+	try{
+	  gpix = gep.getPix(anchor.c, anchor.r, true);
+	} catch (e) {gpix = null; /* Nothing to do. */}
+
+	if (gpix !== null){
+	  pix[0] = gpix[0];
+	  pix[1] = (gpix[1] !== null) ? gep.getPaletteColor(gpix[1]).hex : null;
+	  pix[2] = (gpix[2] !== null) ? gep.getPaletteColor(gpix[2]).hex : null;
+	}
+      }
+
+      cur.c = pos.c;
+      cur.r = pos.r;
+      cur.set(pix[0], Cursor.WRAP_TYPE_NOWRAP, {foreground:pix[1], background:pix[2]});
+    }).bind(this);
     
     this.render = function(){
       if (cur === null || dirty === false){return;}
-      dirty = false;
 
       if (gep !== null){
         // TODO: Render the GEP.
       }
 
-      cur.c = pos.c;
-      cur.r = pos.r;
-      if (cursorState === 1){
-        cur.set("|".charCodeAt(0), Cursor.WRAP_TYPE_NOWRAP, {foreground:"#FFFFFF", background:"#000000"});
-      } else {
-        cur.set(" ".charCodeAt(0), Cursor.WRAP_TYPE_NOWRAP, {foreground:null, background:null});
-        // TODO: Should redraw GEP "pix" at this position.
+      if (active === true || dirty === true){
+	if (cursorState === 1){
+          RenderCursor();
+	} else {
+          UnrenderCursor();
+	}
       }
+
+      dirty = false;
     };
 
     this.update = function(timestamp){
-      elapsedTime = (lastTimestamp === null) ? 0 : timestamp - lastTimestamp;
+      elapsedTime += (lastTimestamp === null) ? 0 : timestamp - lastTimestamp;
       lastTimestamp = timestamp;
 
-      while (elapsedTime/1000 >= 1){
-        elapsedTime -= 1000;
-        if (cursorState === 0){
-          cursorState = 1;
-        } else {
-          cursorState = 0;
-        }
-        dirty = true;
+      //console.log(elapsedTime);
+      if (active === true){
+	while (elapsedTime/1000 >= 1){
+          elapsedTime -= 1000;
+          if (cursorState === 0){
+            cursorState = 1;
+          } else {
+            cursorState = 0;
+          }
+          dirty = true;
+	}
       }
     };
   }

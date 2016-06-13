@@ -8,6 +8,7 @@
       'src/R/Graphics/Color',
       'src/R/Graphics/Terminal',
       'src/R/Graphics/Cursor',
+      'src/R/Graphics/GlyphEncodedPicture',
       'src/R/Input/Keyboard'
     ], factory);
   } else if (typeof exports === 'object') {
@@ -20,6 +21,7 @@
         require('src/R/Graphics/Color'),
 	require('src/R/Graphics/Terminal'),
 	require('src/R/Graphics/Cursor'),
+	require('src/R/Graphics/GlyphEncodedPicture'),
 	require('src/R/Input/Keyboard')
       );
     }
@@ -46,11 +48,12 @@
         root.R.Graphics.Color,
 	root.R.Graphics.Terminal,
 	root.R.Graphics.Cursor,
+	root.R.Graphics.GlyphEncodedPicture,
 	root.R.Input.Keyboard
       );
     }
   }
-})(this, function (Emitter, Color, Terminal, Cursor, Keyboard) {
+})(this, function (Emitter, Color, Terminal, Cursor, GlyphEncodedPicture, Keyboard) {
 
   function GlyphControl(terminal, keyboard){
     Emitter.call(this);
@@ -59,7 +62,7 @@
     var active = false;
     var dirty = true;
 
-    var glyphIndex = 0;
+    var gep = null;
 
     function OnRegionResize(region){dirty = true;}
 
@@ -86,12 +89,24 @@
 	}
       },
 
+      "gep":{
+	get:function(){return gep;},
+        set:function(g){
+          if (g === null || g instanceof GlyphEncodedPicture){
+            if (g !== gep){
+              gep = g;
+              dirty = true;
+            }
+          }
+        }
+      },
+
       "glyph":{
-	get:function(){return glyphIndex;},
+	get:function(){return (gep !== null) ? gep.glyphIndex : 0;},
 	set:function(g){
-	  if (typeof(g) === 'number'){
-	    if (g >= 0 && g < terminal.glyph.elements && Math.floor(g) !== glyphIndex){
-	      glyphIndex = Math.floor(g);
+	  if (gep !== null && typeof(g) === 'number'){
+	    if (g >= 0 && g < terminal.glyph.elements && Math.floor(g) !== gep.glyphIndex){
+	      gep.glyphIndex = Math.floor(g);
 	      this.emit("glyphchange");
 	      dirty = true;
 	    }
@@ -101,15 +116,17 @@
     });
 
     var OnKeyDown = (function(code){
+      if (gep === null){return;}
+
       if (Keyboard.CodeSameAsName(code, "up") === true){
-	if (glyphIndex > 0){
-	  glyphIndex -= 1;
+	if (gep.glyphIndex > 0){
+	  gep.glyphIndex -= 1;
 	  this.emit("glyphchange");
 	  dirty = true;
 	}
       } else if (Keyboard.CodeSameAsName(code, "down") === true){
-	if (glyphIndex+1 < terminal.glyph.elements){
-	  glyphIndex += 1;
+	if (gep.glyphIndex+1 < terminal.glyph.elements){
+	  gep.glyphIndex += 1;
 	  this.emit("glyphchange");
 	  dirty = true;
 	}
@@ -133,18 +150,18 @@
 
 
     this.render = function(){
-      if (cur === null || dirty === false){return;}
+      if (cur === null || dirty === false || gep === null){return;}
       dirty = false;
 
       var rows = cur.rows;
       var midrow = Math.floor(rows*0.5);
       var length = terminal.glyph.elements;
-      if (glyphIndex < 0 || glyphIndex >= terminal.glyph.elements){return;} // Invalid data. Do nothing.
+      if (gep.glyphIndex < 0 || gep.glyphIndex >= terminal.glyph.elements){return;} // Invalid data. Do nothing.
 
       var goffset = 0;
-      if (glyphIndex > midrow && glyphIndex < length - midrow){
-        goffset = glyphIndex - midrow;
-      } else if (length > midrow && glyphIndex >= length-midrow){
+      if (gep.glyphIndex > midrow && gep.glyphIndex < length - midrow){
+        goffset = gep.glyphIndex - midrow;
+      } else if (length > midrow && gep.glyphIndex >= length-midrow){
         goffset = length - rows;
       }
 
@@ -154,7 +171,7 @@
 
 	cur.c = 0;
         cur.r = r;
-        if (gindex === glyphIndex){
+        if (gindex === gep.glyphIndex){
           cur.set(16, Cursor.WRAP_TYPE_NOWRAP, (active === true) ? {foreground:"#FFFF00"} : {foreground:null});
         } else {
 	  cur.set(" ".charCodeAt(0), Cursor.WRAP_TYPE_NOWRAP, {foreground:null});

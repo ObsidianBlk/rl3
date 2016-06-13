@@ -90,10 +90,6 @@
       throw new TypeError("Argument <keyboard> expected to be a Keyboard instance.");
     }
 
-    var activeGlyph = 0;
-    var activeFG = null;
-    var activeBG = null;
-
     var gep = null;
 
     var ctrlPalette = new PalControl(keyboard);
@@ -154,24 +150,10 @@
       redrawFrame = true;
     };
 
-    function OnPaletteBGChange(){
-      activeBG = ctrlPalette.background;
-    }
-
-    function OnPaletteFGChange(){
-      activeFG = ctrlPalette.foreground;
-    }
-
     function OnPaletteChange(){
-      activeBG = ctrlPalette.background;
-      activeFG = ctrlPalette.foreground;
+      // TODO: Force Editor to redraw
     }
 
-    function OnGlyphChange(){
-      if (gep !== null){
-        gep.glyphIndex = ctrlGlyph.glyph;
-      }
-    }
 
     function RenderFrame(cur){
       var rows = cur.rows;
@@ -255,6 +237,11 @@
 	  ctrlEditor.activate(true);
         }
 
+      } else if (Keyboard.CodeSameAsName(code, "grave") === true){
+	if (keyboard.activeCombo("ctrl+`") === true){
+	  ctrlTerminal.activate(true);
+	}
+
 	// Terminal trumps all over inputs...
       } else if (ctrlTerminal.active === false){
 	if (Keyboard.CodeSameAsName(code, "tab") === true){
@@ -278,7 +265,7 @@
     };
 
     function onCtrlTildaCombo(){
-      ctrlTerminal.activate(true);
+      //ctrlTerminal.activate(true);
     };
 
 
@@ -288,8 +275,6 @@
 
       ctrlPalette.cursor = new Cursor(terminal);
       ctrlPalette.gep = gep;
-      ctrlPalette.on("fgchange", OnPaletteFGChange);
-      ctrlPalette.on("bgchange", OnPaletteBGChange);
       ctrlPalette.on("palettechange", OnPaletteChange);
       ctrlPalette.on("activating", function(){
 	ctrlEditor.activate(false);
@@ -297,18 +282,19 @@
 	ctrlTerminal.activate(false);
       });
 
-      ctrlEditor.cursor = new Cursor(terminal);
-      ctrlEditor.on("activating", function(){
-	ctrlPalette.activate(false);
-	ctrlGlyph.activate(false);
-	ctrlTerminal.activate(false);
-      });
-
       ctrlGlyph.cursor = new Cursor(terminal);
-      ctrlGlyph.on("glyphchange", OnGlyphChange);
+      ctrlGlyph.gep = gep;
       ctrlGlyph.on("activating", function(){
 	ctrlEditor.activate(false);
 	ctrlPalette.activate(false);
+	ctrlTerminal.activate(false);
+      });
+
+      ctrlEditor.cursor = new Cursor(terminal);
+      ctrlEditor.gep = gep;
+      ctrlEditor.on("activating", function(){
+	ctrlPalette.activate(false);
+	ctrlGlyph.activate(false);
 	ctrlTerminal.activate(false);
       });
 
@@ -342,6 +328,7 @@
       onRenderResize([terminal.columns, terminal.rows], null);
       keyboard.on("keydown", onKeyDown);
       keyboard.onCombo("ctrl+`", {on:onCtrlTildaCombo});
+      ctrlEditor.activate(true);
       focus = true;
     };
 
@@ -349,6 +336,12 @@
       terminal.unlisten("renderResize", onRenderResize);
       keyboard.unlisten("keydown", onKeyDown);
       keyboard.unlistenCombo("ctrl+`", {on:onCtrlTildaCombo});
+
+      ctrlEditor.activate(false);
+      ctrlPalette.activate(false);
+      ctrlGlyph.activate(false);
+      ctrlTerminal.activate(false);
+
       focus = false;
     };
 
@@ -357,19 +350,15 @@
 
       ctrlEditor.activate(false);
       ctrlEditor.cursor = null;
-      ctrlEditor.gep = gep;
+      ctrlEditor.gep = null;
       ctrlEditor.unlistenAll();
 
       ctrlPalette.activate(false);
-      //ctrlPalette.unlisten("fgchange", OnPaletteFGChange);
-      //ctrlPalette.unlisten("bgchange", OnPaletteBGChange);
-      //ctrlPalette.unlisten("palettechange", OnPaletteChange);
       ctrlPalette.cursor =  null;
       ctrlPalette.gep = null;
       ctrlPalette.unlistenAll();
 
       ctrlGlyph.activate(false);
-      //ctrlGlyph.unlisten("glyphchange", OnGlyphChange);
       ctrlGlyph.cursor = null;
       ctrlGlyph.unlistenAll();
 

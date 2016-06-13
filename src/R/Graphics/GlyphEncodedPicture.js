@@ -94,6 +94,10 @@
     var defaultFG = null;
     var defaultBG = null;
 
+    var activeGlyph = 0;
+    var activeBG = null;
+    var activeFG = null;
+
 
     function NewColumn(){
       var width = this.width;
@@ -169,11 +173,33 @@
 
       "foreground":{
         get:function(){
+          return (activeFG !== null) ? new Color(palette[activeFG]) : null;
+        }
+      },
+
+      "defaultForeground":{
+	get:function(){
           return (defaultFG !== null) ? new Color(palette[defaultFG]) : null;
         }
       },
 
       "foregroundIndex":{
+        get:function(){return activeFG;},
+        set:function(fg){
+          if (fg === null){
+            activeFG = null;
+          } else if (typeof(fg) === 'number'){
+            if (fg < 0 || fg >= palette.length){
+              throw new RangeError("Palette index is out of bounds.");
+            }
+            activeFG = Math.floor(fg);
+          } else {
+            throw new TypeError("Expected an integer index value.");
+          }
+        }
+      },
+
+      "defaultForegroundIndex":{
         get:function(){return defaultFG;},
         set:function(fg){
           if (fg === null){
@@ -189,13 +215,19 @@
         }
       },
 
-      "background":{
+      "defaultBackground":{
         get:function(){
           return (defaultBG !== null) ? new Color(palette[defaultBG]) : null;
         }
       },
 
-      "backgroundIndex":{
+      "background":{
+        get:function(){
+          return (activeBG !== null) ? new Color(palette[activeBG]) : null;
+        }
+      },
+
+      "defaultBackgroundIndex":{
         get:function(){return defaultBG;},
         set:function(bg){
           if (typeof(bg) === 'number'){
@@ -211,7 +243,23 @@
         }
       },
 
-      "glyphIndex":{
+      "backgroundIndex":{
+        get:function(){return activeBG;},
+        set:function(bg){
+          if (typeof(bg) === 'number'){
+            if (bg === null){
+              activeBG = bg;
+            } else if (bg < 0 || bg >= palette.length){
+              throw new RangeError("Palette index is out of bounds.");
+            }
+            activeBG = Math.floor(bg);
+          } else {
+            throw new TypeError("Expected an integer index value.");
+          }
+        }
+      },
+
+      "defaultGlyphIndex":{
         get:function(){return defaultGlyph;},
         set:function(gi){
           if (typeof(gi) === 'number'){
@@ -219,6 +267,20 @@
               throw new RangeError("Glyph index is out of bounds.");
             }
             defaultGlyph = gi;
+          } else {
+            throw new TypeError("Expected an integer index value.");
+          }
+        }
+      },
+
+      "glyphIndex":{
+        get:function(){return activeGlyph;},
+        set:function(gi){
+          if (typeof(gi) === 'number'){
+            if (gi < 0){
+              throw new RangeError("Glyph index is out of bounds.");
+            }
+            activeGlyph = gi;
           } else {
             throw new TypeError("Expected an integer index value.");
           }
@@ -322,8 +384,11 @@
       }
     };
 
+    this.setPix = function(c, r){
+      this.setPixTo(c, r, activeGlyph, activeFG, activeBG);
+    };
     
-    this.setPix = function(c, r, glyph, fg, bg){
+    this.setPixTo = function(c, r, glyph, fg, bg){
       if (typeof(fg) === 'undefined'){
 	fg = null;
       } else if (fg instanceof Color || typeof(fg) === 'string'){
