@@ -73,6 +73,9 @@
 	}
       }
     }
+    while (pix.length < 3){
+      pix.push(null);
+    }
     return pix;
   };
 
@@ -101,7 +104,7 @@
 
     function NewColumn(){
       var width = this.width;
-      var pixcode = CodeToPix([defaultGlyph, defaultFG, defaultBG], true);
+      var pixcode = PixToCode([defaultGlyph, defaultFG, defaultBG], true);
       var col = [];
       for (var i=0; i < width; i++){
 	col.push(pixcode);
@@ -111,7 +114,7 @@
 
     function XTendColumns(amount, pre){
       if (amount > 0 && gdat.length > 0){
-	var pixcode = CodeToPix([defaultGlyph, defaultFG, defaultBG], true);
+	var pixcode = PixToCode([defaultGlyph, defaultFG, defaultBG], true);
 	for (var r=0; r < gdat.length; r++){
 	  for (var i=0; i < amount; i++){
 	    if (pre === true){
@@ -137,23 +140,12 @@
     }
 
     Object.defineProperties(this, {
-      "anchor":{
-	get:function(){
-	  // NOTE: I'm returning the negative value of the actual anchor point.
-	  // This effectively returns the offset from the 0,0 origin of the image data.
-	  return {
-	    c: - region.left,
-	    r: - region.top
-	  };
-	}
-      },
-
       "width":{
-	get:function(){return (gdat.length > 0) ? (region.right - region.left) + 1 : 0;}
+	get:function(){return (gdat.length > 0) ? gdat[0].length : 0;}
       },
 
       "height":{
-	get:function(){return (gdat.length > 0) ? (region.bottom - region.top) + 1 : 0;}
+	get:function(){return gdat.length;}
       },
 
       "paletteSize":{
@@ -415,37 +407,28 @@
 	throw new TypeError("Background must be a Color instance, a string, a palette index value, or null.");
       }
 
-      if (c < region.left){
-	if (this.width > 0){
-	  XTendColumns(region.left - c, true);
-	}
-	region.left = c;
-      } else if (c > region.right){
-	if (this.width > 0){
-	  XTendColumns(c - region.right);
-	}
-	region.right = c;
-      }
 
-      if (r < region.top){
-	if (this.height > 0){
-	  XTendRows(region.top - r, true);
-	}
-	region.top = r;
-      } else if (r > region.bottom){
-	if (this.height > 0){
-	  XTendRows(r - region.bottom);
-	}
-	region.bottom = r;
-      }
 
-      if (gdat.length === 0){
-	gdat.push([PixToCode([glyph, fg, bg], true)]);
-      } else {
-	c += region.left;
-	r += region.top;
+      if (gdat.length > 0){
+	var width = this.width;
+	var height = this.height;
 
+	if (c < 0){
+	  XTendColumns(-c, true);
+	  c = 0;
+	} else if (c >= width){
+	  XTendColumns(c - (width-1));
+	}
+
+	if (r < region.top){
+	  XTendRows(-r, true);
+	  r = 0;
+	} else if (r >= height){
+	  XTendRows(r - (height-1));
+	}
 	gdat[r][c] = PixToCode([glyph, fg, bg], true);
+      } else {
+	gdat.push([PixToCode([glyph, fg, bg], true)]);
       }
     };
 
@@ -487,12 +470,7 @@
     };
 
 
-    this.getPix = function(c, r, coordExact){
-      if (coordExact !== true){
-	c += region.left;
-	r += region.top;
-      }
-
+    this.getPix = function(c, r){
       if (c < 0 || c >= this.width || r < 0 || r >= this.height){
 	throw new RangeError("Coordinates out of range.");
       }
