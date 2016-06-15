@@ -143,17 +143,17 @@
       var shiftActive = false;
       if (Keyboard.CodeSameAsName(code, "space") === true){
 	if (gep !== null){
-	  var c = offset.c + pos.c;
-	  var r = offset.r + pos.r;
+	  var c = pos.c - offset.c;
+	  var r = pos.r - offset.r;
 	  if (gep.width === 0 || gep.height === 0){
-	    offset.c = -pos.c;
-	    offset.r = -pos.r;
+	    offset.c = pos.c;
+	    offset.r = pos.r;
 	  } else if (c < 0 || r < 0){
 	    if (c < 0){
-	      offset.c -= c;
+	      offset.c += c;
 	    }
 	    if (r < 0){
-	      offset.r -= r;
+	      offset.r += r;
 	    }
 	  }
 	  gep.setPix(c, r);
@@ -172,6 +172,8 @@
 	  pos.r -= shift;
 	} else if (gep !== null && gep.height > 0){
 	  offset.r += (shiftActive) ? shiftJumpSize : shift;
+          gep.dirty = true;
+          dirty = true;
 	}
 	RenderCursor();
 
@@ -187,6 +189,8 @@
 	  pos.r += shift;
 	} else if (gep !== null && gep.height > 0){
 	  offset.r -= (shiftActive) ? shiftJumpSize : shift;
+          gep.dirty = true;
+          dirty = true;
 	}
 	RenderCursor();
 
@@ -201,7 +205,9 @@
 	  }
 	  pos.c -= shift;
 	} else if (gep !== null && gep.width > 0){
-	  offset.c -= (shiftActive) ? shiftJumpSize : shift;
+	  offset.c += (shiftActive) ? shiftJumpSize : shift;
+          gep.dirty = true;
+          dirty = true;
 	}
 	RenderCursor();
 
@@ -216,7 +222,9 @@
 	  }
 	  pos.c += shift;
 	} else if (gep !== null && gep.width > 0){
-	  offset.c += (shiftActive) ? shiftJumpSize : shift;
+	  offset.c -= (shiftActive) ? shiftJumpSize : shift;
+          gep.dirty = true;
+          dirty = true;
 	}
 	RenderCursor();
       }
@@ -243,14 +251,14 @@
     var RenderCursor = (function(){
       var pix = [219, "#FFFF00", "#000000"];
       if (gep !== null){
-	var c = offset.c + pos.c;
-	var r = offset.r + pos.r;
+	var c = pos.c - offset.c;
+	var r = pos.r - offset.r;
 	var gpix = null;
 	try{
 	  gpix = gep.getPix(c, r, true);
 	} catch (e) {gpix = null; /* Nothing to do. */}
-
-	if (gpix !== null){
+        
+	if (gpix !== null && gpix[0] !== 0 && gpix[0] != " ".charCodeAt(0)){
 	  pix[0] = gpix[0];
 	}
       }
@@ -263,8 +271,8 @@
     var UnrenderCursor = (function(){
       var pix = [0, null, null];
       if (gep !== null){
-	var c = offset.c + pos.c;
-	var r = offset.r + pos.r;
+	var c = pos.c - offset.c;
+	var r = pos.r - offset.r;
 	var gpix = null;
 	try{
 	  gpix = gep.getPix(c, r, true);
@@ -286,20 +294,28 @@
     this.render = function(){
       if (cur === null || dirty === false){return;}
 
-      if (gep !== null){
-        var sc = offset.c;
-	var sr = offset.r;
+      if (gep !== null && gep.dirty === true){
+        gep.dirty = false;
 	var width = gep.width;
 	var height = gep.height;
 
-	for (var r = sr; r < sr + height; r++){
-	  for (var c = sc; c < sc + width; c++){
-	    if (c >= 0 && r >= 0 && c < cur.columns && r < cur.rows){
+        cur.clear();
+        /*cur.clearRegion(
+          (-offset.c >= 0) ? -offset.c : 0,
+          (-offset.r >= 0) ? -offset.r : 0,
+          width, height
+        );*/
+
+	for (var r = 0; r < height; r++){
+	  for (var c = 0; c < width; c++){
+            var pc = c + offset.c;
+            var pr = r + offset.r;
+	    if (pc >= 0 && pr >= 0 && pc < cur.columns && pr < cur.rows){
 	      var pix = gep.getPix(c, r);
 	      var fg = (pix[1] !== null) ? gep.getPaletteColor(pix[1]) : null;
 	      var bg = (pix[2] !== null) ? gep.getPaletteColor(pix[2]) : null;
-	      cur.c = c;
-	      cur.r = r;
+	      cur.c = pc;
+	      cur.r = pr;
 	      cur.set(pix[0], Cursor.WRAP_TYPE_NOWRAP, {foreground:fg, background:bg});
 	    }
 	  }
@@ -315,6 +331,11 @@
       }
 
       dirty = false;
+    };
+
+
+    this.forceRerender = function(){
+      dirty = true;
     };
 
 

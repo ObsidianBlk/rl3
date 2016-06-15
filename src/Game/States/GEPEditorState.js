@@ -151,6 +151,7 @@
     };
 
     function OnPaletteChange(){
+      ctrlEditor.forceRerender();
       // TODO: Force Editor to redraw
     }
 

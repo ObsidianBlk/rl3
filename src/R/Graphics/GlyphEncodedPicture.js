@@ -83,13 +83,6 @@
 
 
   function GlyphEncodedPicture(){
-    var region = {
-      left: 0,
-      top: 0,
-      right: 0,
-      bottom: 0
-    };
-
     var palette = [];
     var gdat = [];
 
@@ -101,9 +94,11 @@
     var activeBG = null;
     var activeFG = null;
 
+    var dirty = false;
+
 
     function NewColumn(){
-      var width = this.width;
+      var width = gdat[0].length;
       var pixcode = PixToCode([defaultGlyph, defaultFG, defaultBG], true);
       var col = [];
       for (var i=0; i < width; i++){
@@ -140,6 +135,16 @@
     }
 
     Object.defineProperties(this, {
+      "dirty":{
+        get:function(){return dirty;},
+        set:function(enable){
+          if (typeof(enable) !== 'boolean'){
+            throw new TypeError("Boolean expected.");
+          }
+          dirty = enable;
+        }
+      },
+      
       "width":{
 	get:function(){return (gdat.length > 0) ? gdat[0].length : 0;}
       },
@@ -284,8 +289,9 @@
       var exp = {
 	id: "GEP",
 	version: "0.0.1",
-	region: region,
 	gdat: gdat,
+        width: gdat[0].length,
+        height: gdat.length,
 	defaultGlyph: defaultGlyph,
 	defaultFG: defaultFG,
 	defaultBG: defaultBG
@@ -334,6 +340,7 @@
       }
       color = (color instanceof Color) ? color : new Color(color);
       palette[index] = color;
+      dirty = true;
     };
 
     this.storePalette = function(npal){
@@ -374,6 +381,7 @@
 	  });
 	}
       }
+      dirty = true;
     };
 
     this.setPix = function(c, r){
@@ -420,7 +428,7 @@
 	  XTendColumns(c - (width-1));
 	}
 
-	if (r < region.top){
+	if (r < 0){
 	  XTendRows(-r, true);
 	  r = 0;
 	} else if (r >= height){
@@ -430,6 +438,8 @@
       } else {
 	gdat.push([PixToCode([glyph, fg, bg], true)]);
       }
+      // TODO: Double check pix was actually changed.
+      dirty = true;
     };
 
     
@@ -467,6 +477,7 @@
 	}
       }
       gdat[r][c] = PixToCode(pix, true);
+      dirty = true;
     };
 
 
