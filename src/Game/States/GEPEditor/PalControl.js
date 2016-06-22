@@ -221,6 +221,7 @@
 
               if (cur !== null){
                 cur.on("regionresize", OnRegionResize);
+                cur.clear();
               }
 	      dirty = true;
 	    }
@@ -246,145 +247,75 @@
     });
 
 
-    function RenderPalCol(col, index){
-      if (cur === null || gep === null){return;}
-      var rows = cur.rows-2;
-      var midrow = Math.floor((rows-2)*0.5);
-      if (col < 0 || col >= cur.columns){return;} // Invalid data. Do nothing.
-
-      // Render the standard information.
-      if (col === 0){
-        cur.c = 1;
-        cur.r = 0;
-        if (index === null){
-          cur.set("F".charCodeAt(0), Cursor.WRAP_TYPE_NOWRAP, {foreground:"#FFFF00"});
-        } else {
-          cur.set("F".charCodeAt(0), Cursor.WRAP_TYPE_NOWRAP, {foreground:null});
-        }
-      } else if (col === 1){
-        cur.c = 2;
-        cur.r = 0;
-        if (index === null){
-          cur.set("B".charCodeAt(0), Cursor.WRAP_TYPE_NOWRAP, {foreground:"#FFFF00"});
-        } else {
-          cur.set("B".charCodeAt(0), Cursor.WRAP_TYPE_NOWRAP, {foreground:null});
-        }
-      }
-
-      cur.c = col+1;
-      cur.r = 1;
-      if (active === true && palctrl === col){
-	if (index === null){
-	  cur.set(parseInt("1E", 16), Cursor.WRAP_TYPE_NOWRAP, {foreground:"#FFFF00"});
-	} else {
-	  cur.set(parseInt("1F", 16), Cursor.WRAP_TYPE_NOWRAP, {foreground:"#FFFF00"});
-	}
-      } else {
-	cur.set("-".charCodeAt(0), Cursor.WRAP_TYPE_NOWRAP, {foreground:null});
-      }
-
-
-      if (index !== null && (index < 0 || index >= gep.paletteSize)){return;} // Invalid data. Do nothing.
-
-      var paloffset = 0;
-      if (index !== null){
-        if (index > midrow && index < gep.paletteSize - midrow){
-          paloffset = index - midrow;
-        } else if (gep.paletteSize > midrow && index >= gep.paletteSize-midrow){
-          paloffset = gep.paletteSize - (rows-2);
-        }
-      }
-
-      if (gep.paletteSize > 0){
-        for (var r=0; r < (rows-2); r++){
-          var pindex = r + paloffset;
-          if (pindex >= gep.paletteSize){break;}
-
-          if (pindex === index){
-	    if (col === 0){
-	      cur.r = r + 2;
-	      cur.c = 0;
-              cur.set(16, Cursor.WRAP_TYPE_NOWRAP, (active===true) ? {foreground:"#FFFF00"} : {foreground:null});
-	    } else if (col === 1){
-	      cur.r = r + 2;
-	      cur.c = 3;
-	      cur.set(17, Cursor.WRAP_TYPE_NOWRAP, (active===true) ? {foreground:"#FFFF00"} : {foreground:null});
-	    }
-          } else {
-	    cur.r = r + 2;
-	    cur.c = (col === 0) ? 0 : 3;;
-	    cur.set(" ".charCodeAt(0), Cursor.WRAP_TYPE_NOWRAP, {foreground:null, background:null});
-	  }
-	  cur.r = r + 2;
-	  cur.c = (col === 0) ? 1 : 2;
-          cur.set(" ".charCodeAt(0), Cursor.WRAP_TYPE_NOWRAP, {background:gep.getPaletteColor(pindex).hex});
-        }
-      }
-    };
-
-
     var OnKeyDown = (function(code){
-      if (Keyboard.CodeSameAsName(code, "up") === true){
-        if (gep === null){return;}
-	if (palctrl === 0){
-	  if (gep.foregroundIndex !== null){
-	    if (gep.foregroundIndex === 0){
-	      gep.foregroundIndex = null;
-	      this.emit("fgchange");
-	      dirty = true;
-	    } else {
-	      gep.foregroundIndex -= 1;
-	      this.emit("fgchange");
-	      dirty = true;
-	    }
-	  }
-	} else {
-	  if (gep.backgroundIndex !== null){
-	    if (gep.backgroundIndex === 0){
-	      gep.backgroundIndex = null;
-	      this.emit("bgchange");
-	      dirty = true;
-	    } else {
-	      gep.backgroundIndex -= 1;
-	      this.emit("bgchange");
-	      dirty = true;
-	    }
-	  }
-	}
+      var index = 0;
+      
+      if (code === "f".charCodeAt(0)){
+        palctrl = 0;
+        dirty = true;
+      } else if (code === "b".charCodeAt(0)){
+        palctrl = 1;
+        dirty = true;
+      } else if (Keyboard.CodeSameAsName(code, "up") === true){
+        index = (palctrl === 0) ? gep.foregroundIndex : gep.backgroundIndex;
+        if (index !== null){
+          if (index - 16 >= 0){
+            index -= 16;
+          } else {
+            index = null;
+          }
+
+          if (palctrl === 0){
+            gep.foregroundIndex = index;
+          } else {
+            gep.backgroundIndex = index;
+          }
+          dirty = true;
+        }
       } else if (Keyboard.CodeSameAsName(code, "down") === true){
-        if (gep === null){return;}
-	if (gep.paletteSize <= 0){return;} // Nothing to do without a palette :p
-	if (palctrl === 0){
-	  if (gep.foregroundIndex === null){
-	    gep.foregroundIndex = 0;
-	    this.emit("fgchange");
-	    dirty = true;
-	  } else if (gep.foregroundIndex < gep.paletteSize - 1){
-	    gep.foregroundIndex += 1;
-	    this.emit("fgchange");
-	    dirty = true;
-	  }
-	} else {
-	  if (gep.backgroundIndex === null){
-	    gep.backgroundIndex = 0;
-	    this.emit("bgchange");
-	    dirty = true;
-	  } else if (gep.backgroundIndex < gep.paletteSize - 1){
-	    gep.backgroundIndex += 1;
-	    this.emit("bgchange");
-	    dirty = true;
-	  }
-	}
+        index = (palctrl === 0) ? gep.foregroundIndex : gep.backgroundIndex;
+        if (index === null){
+          index = 0;
+        } else if (index + 16 < gep.paletteSize){
+          index += 16;
+        }
+
+        if (palctrl === 0){
+          gep.foregroundIndex = index;
+        } else {
+          gep.backgroundIndex = index;
+        }
+        dirty = true;
       } else if (Keyboard.CodeSameAsName(code, "left") === true){
-	if (palctrl > 0){
-	  palctrl -= 1;
-	  dirty = true;
-	}
+        index = (palctrl === 0) ? gep.foregroundIndex : gep.backgroundIndex;
+        if (index !== null){
+          if (index - 1 >= 0){
+            index -= 1;
+          } else {
+            index = null;
+          }
+
+          if (palctrl === 0){
+            gep.foregroundIndex = index;
+          } else {
+            gep.backgroundIndex = index;
+          }
+          dirty = true;
+        }
       } else if (Keyboard.CodeSameAsName(code, "right") === true){
-	if (palctrl === 0){
-	  palctrl = 1;
-	  dirty = true;
-	}
+        index = (palctrl === 0) ? gep.foregroundIndex : gep.backgroundIndex;
+        if (index === null){
+          index = 0;
+        } else if (index + 1 < gep.paletteSize){
+          index += 1;
+        }
+
+        if (palctrl === 0){
+          gep.foregroundIndex = index;
+        } else {
+          gep.backgroundIndex = index;
+        }
+        dirty = true;
       }
     }).bind(this);
 
@@ -400,6 +331,7 @@
 	this.emit("activating");
 	keyboard.on("keydown", OnKeyDown);
       } else {
+        cur.clear();
 	keyboard.unlisten("keydown", OnKeyDown);
       }
       dirty = true;
@@ -501,11 +433,69 @@
     };
 
 
+    function RenderFrame(){
+      cur.c = 0;
+      cur.r = 0;
+      // Upper Left
+      cur.set(parseInt("DA", 16), Cursor.WRAP_TYPE_NOWRAP, {foreground:null, background:null});
+      cur.c = cur.columns-1;
+      cur.r = 0;
+      // Upper Right
+      cur.set(parseInt("BF", 16), Cursor.WRAP_TYPE_NOWRAP, {foreground:null, background:null});
+      cur.c = 0;
+      cur.r = cur.rows-1;
+      // Lower Left
+      cur.set(parseInt("C0", 16), Cursor.WRAP_TYPE_NOWRAP, {foreground:null, background:null});
+      cur.c = cur.columns - 1;
+      cur.r = cur.rows - 1;
+      // Lower Right
+      cur.set(parseInt("D9", 16), Cursor.WRAP_TYPE_NOWRAP, {foreground:null, background:null});
+
+      for (var r=0; r < cur.rows; r++){
+        cur.r = r;
+        if (r === 0 || r === cur.rows-1){
+          cur.c = 1;
+          for (var c=0; c < cur.columns-2; c++){
+            cur.set(parseInt("C4", 16), Cursor.WRAP_TYPE_NOWRAP, {foreground:null, background:null});
+          }
+        } else {
+          cur.c = 0;
+          cur.set(parseInt("B3", 16), Cursor.WRAP_TYPE_NOWRAP, {foreground:null, background:null});
+          cur.c = cur.columns-1;
+          cur.set(parseInt("B3", 16), Cursor.WRAP_TYPE_NOWRAP, {foreground:null, background:null});
+        }
+      }
+    }
+
     this.render = function(){
-      if (cur === null || dirty === false){return;}
+      if (cur === null || dirty === false || active === false){return;}
       dirty = false;
-      RenderPalCol(0, gep.foregroundIndex);
-      RenderPalCol(1, gep.backgroundIndex);
+
+      RenderFrame();
+
+      var palsize = gep.paletteSize;
+      cur.r = 1;
+      cur.c = 2;
+      for (var i=0; i < palsize; i++){
+        if (cur.c === cur.columns - 1){
+          cur.c = 2;
+          cur.r += 1;
+        }
+        var palColor = gep.getPaletteColor(i);
+        var fg = null;
+        var code = 32;
+        if (i === gep.foregroundIndex || i === gep.backgroundIndex){
+          fg = palColor.inverted().hex;
+          if (i === gep.foregroundIndex){
+            code = 70;
+          } else {
+            code = 66;
+          }
+        }
+        cur.set(code, Cursor.WRAP_TYPE_NOWRAP, {forground:fg, background:palColor.hex});
+      }
+      //RenderPalCol(0, gep.foregroundIndex);
+      //RenderPalCol(1, gep.backgroundIndex);
     };
   };
   PalControl.prototype.__proto__ = Emitter.prototype;

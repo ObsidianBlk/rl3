@@ -81,6 +81,7 @@
 
               if (cur !== null){
                 cur.on("regionresize", OnRegionResize);
+                cur.clear();
               }
 	      dirty = true;
 	    }
@@ -198,6 +199,40 @@
       return pix;
     }
 
+    function RenderFrame(){
+      cur.c = 0;
+      cur.r = 0;
+      // Upper Left
+      cur.set(parseInt("DA", 16), Cursor.WRAP_TYPE_NOWRAP, {foreground:null, background:null});
+      cur.c = cur.columns-1;
+      cur.r = 0;
+      // Upper Right
+      cur.set(parseInt("BF", 16), Cursor.WRAP_TYPE_NOWRAP, {foreground:null, background:null});
+      cur.c = 0;
+      cur.r = cur.rows-1;
+      // Lower Left
+      cur.set(parseInt("C0", 16), Cursor.WRAP_TYPE_NOWRAP, {foreground:null, background:null});
+      cur.c = cur.columns - 1;
+      cur.r = cur.rows - 1;
+      // Lower Right
+      cur.set(parseInt("D9", 16), Cursor.WRAP_TYPE_NOWRAP, {foreground:null, background:null});
+
+      for (var r=0; r < cur.rows; r++){
+        cur.r = r;
+        if (r === 0 || r === cur.rows-1){
+          cur.c = 1;
+          for (var c=0; c < cur.columns-2; c++){
+            cur.set(parseInt("C4", 16), Cursor.WRAP_TYPE_NOWRAP, {foreground:null, background:null});
+          }
+        } else {
+          cur.c = 0;
+          cur.set(parseInt("B3", 16), Cursor.WRAP_TYPE_NOWRAP, {foreground:null, background:null});
+          cur.c = cur.columns-1;
+          cur.set(parseInt("B3", 16), Cursor.WRAP_TYPE_NOWRAP, {foreground:null, background:null});
+        }
+      }
+    }
+
 
     this.render = function(gep){
       if (cur === null){return;}
@@ -210,7 +245,10 @@
       var bgi = gep.backgroundIndex;
 
       cur.clear();
-      cur.c = cur.columns - 15;
+      RenderFrame();
+
+      cur.r = 1;
+      cur.c = cur.columns - 16;
       cur.set(glyphIndex, Cursor.WRAP_TYPE_NOWRAP, {
         foreground: (fg !== null) ? fg.hex : null,
         background: (bg !== null) ? bg.hex : null
@@ -218,7 +256,8 @@
       cur.textOut(" | ", {forground:null, background:null});
       cur.textOut(ToPixCode(glyphIndex, fgi, bgi), {foreground:null, background:null});
 
-      cur.c = 0;
+      cur.r = 1;
+      cur.c = 1;
       if (error === null && warning === null && msg === null){
 	if (active === true){
           cur.textOut("Terminal: ");

@@ -82,6 +82,7 @@
 
               if (cur !== null){
                 cur.on("regionresize", OnRegionResize);
+                cur.clear();
               }
 	      dirty = true;
 	    }
@@ -119,13 +120,25 @@
       if (gep === null){return;}
 
       if (Keyboard.CodeSameAsName(code, "up") === true){
-	if (gep.glyphIndex > 0){
+        if (gep.glyphIndex - 16 > 0){
+          gep.glyphIndex -= 16;
+          this.emit("glyphchange");
+	  dirty = true;
+        }
+      } else if (Keyboard.CodeSameAsName(code, "down") === true){
+        if (gep.glyphIndex + 16 < terminal.glyph.elements){
+          gep.glyphIndex += 16;
+          this.emit("glyphchange");
+	  dirty = true;
+        }
+      } else if (Keyboard.CodeSameAsName(code, "left") === true){
+        if (gep.glyphIndex > 0){
 	  gep.glyphIndex -= 1;
 	  this.emit("glyphchange");
 	  dirty = true;
 	}
-      } else if (Keyboard.CodeSameAsName(code, "down") === true){
-	if (gep.glyphIndex+1 < terminal.glyph.elements){
+      } else if (Keyboard.CodeSameAsName(code, "right") === true){
+        if (gep.glyphIndex+1 < terminal.glyph.elements){
 	  gep.glyphIndex += 1;
 	  this.emit("glyphchange");
 	  dirty = true;
@@ -143,6 +156,7 @@
 	this.emit("activating");
 	keyboard.on("keydown", OnKeyDown);
       } else {
+        cur.clear();
 	keyboard.unlisten("keydown", OnKeyDown);
       }
       dirty = true;
@@ -150,36 +164,58 @@
 
 
     this.render = function(){
-      if (cur === null || dirty === false || gep === null){return;}
+      if (cur === null || dirty === false || gep === null || active === false){return;}
       dirty = false;
 
-      var rows = cur.rows;
-      var midrow = Math.floor(rows*0.5);
-      var length = terminal.glyph.elements;
-      if (gep.glyphIndex < 0 || gep.glyphIndex >= terminal.glyph.elements){return;} // Invalid data. Do nothing.
+      cur.clear();
+      cur.c = 0;
+      cur.r = 0;
+      cur.set(parseInt("C2", 16), Cursor.WRAP_TYPE_NOWRAP, {foreground:null, background:null});
+      cur.c = cur.columns-1;
+      cur.r = 0;
+      cur.set(parseInt("BF", 16), Cursor.WRAP_TYPE_NOWRAP, {foreground:null, background:null});
+      cur.c = 0;
+      cur.r = cur.rows-1;
+      cur.set(parseInt("C0", 16), Cursor.WRAP_TYPE_NOWRAP, {foreground:null, background:null});
+      cur.c = cur.columns - 1;
+      cur.r = cur.rows - 1;
+      cur.set(parseInt("B4", 16), Cursor.WRAP_TYPE_NOWRAP, {foreground:null, background:null});
 
-      var goffset = 0;
-      if (gep.glyphIndex > midrow && gep.glyphIndex < length - midrow){
-        goffset = gep.glyphIndex - midrow;
-      } else if (length > midrow && gep.glyphIndex >= length-midrow){
-        goffset = length - rows;
+      for (var r=0; r < cur.rows; r++){
+        cur.r = r;
+        if (r === 0 || r === cur.rows-1){
+          cur.c = 1;
+          for (var c=0; c < cur.columns-2; c++){
+            cur.set(parseInt("C4", 16), Cursor.WRAP_TYPE_NOWRAP, {foreground:null, background:null});
+          }
+        } else {
+          cur.c = 0;
+          cur.set(parseInt("B3", 16), Cursor.WRAP_TYPE_NOWRAP, {foreground:null, background:null});
+          cur.c = cur.columns-1;
+          cur.set(parseInt("B3", 16), Cursor.WRAP_TYPE_NOWRAP, {foreground:null, background:null});
+        }
       }
 
-      for (var r=0; r < rows; r++){
-        var gindex = r + goffset;
-        if (gindex >= length){break;}
-
-	cur.c = 0;
-        cur.r = r;
-        if (gindex === gep.glyphIndex){
-          cur.set(16, Cursor.WRAP_TYPE_NOWRAP, (active === true) ? {foreground:"#FFFF00"} : {foreground:null});
+      var elcount = terminal.glyph.elements;
+      if (elcount > 256){elcount = 256;}
+      
+      cur.r=1;
+      cur.c=1;
+      for (var i=0; i < elcount; i++){
+        if (cur.c === cur.columns-1){
+          cur.c = 1;
+          cur.r += 1;
+        }
+        
+        if (gep.glyphIndex === i){
+          if (i === 0 || i === " ".charCodeAt(0)){
+            cur.set(i, Cursor.WRAP_TYPE_CHARACTER, {foreground:null, background:"#FFFF00"});
+          } else {
+            cur.set(i, Cursor.WRAP_TYPE_CHARACTER, {foreground:"#FFFF00", background:null});
+          }
         } else {
-	  cur.set(" ".charCodeAt(0), Cursor.WRAP_TYPE_NOWRAP, {foreground:null});
-	}
-
-        cur.c = 1;
-        cur.r = r;
-	cur.set(gindex);
+          cur.set(i, Cursor.WRAP_TYPE_CHARACTER, {foreground:null, background:null});
+        }
       }
     };
   }

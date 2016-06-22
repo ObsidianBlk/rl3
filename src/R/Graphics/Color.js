@@ -219,6 +219,15 @@
       return (new Color()).setRGBA(color.r, color.g, color.b, color.a);
     };
 
+    this.invert = function(){
+      this.setRGBA(255 - color.r, 255 - color.g, 255 - color.b, color.a);
+      return this;
+    };
+
+    this.inverted = function(){
+      return (new Color()).setRGBA(255 - color.r, 255 - color.g, 255 - color.b, color.a);
+    };
+
     this.blend = function(c){
       c = (!(c instanceof Color)) ? new Color(c) : c;
       var alpha = c.af;

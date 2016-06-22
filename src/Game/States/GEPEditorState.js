@@ -97,53 +97,43 @@
     var ctrlEditor = new EditorControl(keyboard);
     var ctrlTerminal = new TerminalControl(keyboard);
 
-    var framecursor = null;
-
     var focus = false;
     var redrawFrame = true;
 
     function onRenderResize(newres, oldres){
-      framecursor.region = {
-	left: 0,
-	top: 0,
-	right: newres[0]-1,
-	bottom: newres[1]-1
-      };
-      framecursor.clear();
-
       if (ctrlEditor.cursor !== null){
 	ctrlEditor.cursor.region = {
-	  left: 6,
-	  right: newres[0] - 5,
-	  top: 1,
+	  left: 0,
+	  right: newres[0] - 1,
+	  top: 0,
 	  bottom: newres[1] - 4
 	};
       }
 
       if (ctrlPalette.cursor !== null){
 	ctrlPalette.cursor.region = {
-	  left: 1,
-	  right: 4,
-	  top: 1,
-	  bottom: newres[1] - 4
+	  left: 0,
+	  right: 18,
+	  top: 0,
+	  bottom: 17
 	};
       }
 
       if (ctrlGlyph.cursor !== null){
 	ctrlGlyph.cursor.region = {
-	  left: newres[0] - 3,
-	  right: newres[0] - 2,
-	  top: 1,
-	  bottom: newres[1] - 4
+	  left: newres[0] - 18,
+	  right: newres[0] - 1,
+	  top: 0,
+	  bottom: 17
 	};
       }
 
       if (ctrlTerminal.cursor !== null){
 	ctrlTerminal.cursor.region = {
-	  left: 1,
-	  right: newres[0] - 2,
-	  top: newres[1] - 2,
-	  bottom: newres[1] - 2
+	  left: 0,
+	  right: newres[0] - 1,
+	  top: newres[1] - 3,
+	  bottom: newres[1] - 1
 	};
       }
 
@@ -156,7 +146,7 @@
     }
 
 
-    function RenderFrame(cur){
+    /*function RenderFrame(cur){
       var rows = cur.rows;
       var columns = cur.columns;
 
@@ -227,7 +217,7 @@
       cur.c = coll1;
       cur.r = rows - 1;
       cur.dataOut(line);
-    };
+    };*/
 
 
     function onKeyDown(code){
@@ -272,7 +262,7 @@
 
     this.enter = function(){
       gep = new GlyphEncodedPicture();
-      framecursor = new Cursor(terminal);
+      //framecursor = new Cursor(terminal);
 
       ctrlPalette.cursor = new Cursor(terminal);
       ctrlPalette.gep = gep;
@@ -347,7 +337,7 @@
     };
 
     this.exit = function(){
-      framecursor = null;
+      //framecursor = null;
 
       ctrlEditor.activate(false);
       ctrlEditor.cursor = null;
@@ -372,10 +362,10 @@
 
     this.update = function(timestamp, bps){
       if (focus === true){
-	if (redrawFrame === true){
+	/*if (redrawFrame === true){
 	  redrawFrame = false;
 	  RenderFrame(framecursor);
-	}
+	}*/
         
         ctrlEditor.update(timestamp);
 

@@ -104,6 +104,7 @@
 
               if (cur !== null){
                 cur.on("regionresize", OnRegionResize);
+                cur.clear();
               }
 	      dirty = true;
 	    }
