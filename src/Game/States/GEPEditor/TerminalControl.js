@@ -126,6 +126,10 @@
 	  }  else {
 	    this.emit("switchglyphindex", index);
 	  }
+          break;
+        case "\\save":
+          this.emit("saveGEP", cmd[1]);
+          break;
         }
       } else {
         warning = "Command not recognized.";

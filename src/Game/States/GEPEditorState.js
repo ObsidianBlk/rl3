@@ -80,6 +80,9 @@
 })(this, function (FSM, Color, Terminal, Cursor, Keyboard, GlyphEncodedPicture, PalControl, GlyphControl, TerminalControl, EditorControl) {
 
 
+  var FS = require('fs'); // Mixing NODEJS in... this won't have any reparcussions.
+  var Path = require('path');
+  
 
   // (G)lyph (E)ncoded (P)icture Editor State
   function GEPEditorState(terminal, keyboard, fsm, setActive){
@@ -91,7 +94,8 @@
     }
 
     var gep = null;
-
+    var cur = null;
+    
     var ctrlPalette = new PalControl(keyboard);
     var ctrlGlyph = new GlyphControl(terminal, keyboard);
     var ctrlEditor = new EditorControl(keyboard);
@@ -146,86 +150,12 @@
     }
 
 
-    /*function RenderFrame(cur){
-      var rows = cur.rows;
-      var columns = cur.columns;
-
-      var coll1 = 0;
-      var coll2 = 5;
-      var colr1 = columns - 4;
-      var colr2 = columns - 1;
-      
-      cur.c = 0;
-      cur.r = 0;
-      var line = new Array(columns);
-      for (var c = 0; c < columns; c++){
-	if (c === coll1){
-	  line[c] = parseInt("DA", 16);
-	} else if (c === coll2 || c === colr1){
-	  line[c] = parseInt("C2", 16);
-	} else if (c === colr2){
-	  line[c] = parseInt("BF", 16);
-	} else {
-	  line[c] = parseInt("C4", 16);
-	}
-      }
-      cur.dataOut(line);
-      
-      var vlinecode = parseInt("B3", 16);
-      for (var r=1; r < rows-3; r++){
-	cur.r = r;
-	cur.c = coll1;
-	cur.set(vlinecode);
-	cur.c = coll2;
-	cur.set(vlinecode);
-	cur.c = colr1;
-	cur.set(vlinecode);
-	cur.c = colr2;
-	cur.set(vlinecode);
-      }
-
-      for (c=0; c < columns; c++){
-	if (c === coll1){
-	  line[c] = parseInt("C3", 16);
-	} else if (c === coll2 || c === colr1){
-	  line[c] = parseInt("C1", 16);
-	} else if (c === colr2){
-	  line[c] = parseInt("B4", 16);
-	} else {
-	  line[c] = parseInt("C4", 16);
-	}
-      }
-      cur.c = coll1;
-      cur.r = rows - 3;
-      cur.dataOut(line);
-
-      cur.c = coll1;
-      cur.r = rows - 2;
-      cur.set(vlinecode);
-      cur.c = columns - 1;
-      cur.set(vlinecode);
-
-      for (c=0; c < columns; c++){
-	if (c === coll1){
-	  line[c] = parseInt("C0", 16);
-	} else if (c === colr2){
-	  line[c] = parseInt("D9", 16);
-	} else {
-	  line[c] = parseInt("C4", 16);
-	}
-      }
-      cur.c = coll1;
-      cur.r = rows - 1;
-      cur.dataOut(line);
-    };*/
-
-
     function onKeyDown(code){
       if (Keyboard.CodeSameAsName(code, "escape") === true){
-        if (ctrlTerminal.active === false){
-	  fsm.activateState("MainMenuState");
+        if (ctrlGlyph.active === true || ctrlPalette.active === true || ctrlTerminal.active === true){
+          ctrlEditor.activate(true);
         } else {
-	  ctrlEditor.activate(true);
+          fsm.activateState("MainMenuState");
         }
 
       } else if (Keyboard.CodeSameAsName(code, "grave") === true){
@@ -235,23 +165,11 @@
 
 	// Terminal trumps all over inputs...
       } else if (ctrlTerminal.active === false){
-	if (Keyboard.CodeSameAsName(code, "tab") === true){
-	  if (ctrlPalette.active === true){
-	    ctrlEditor.activate(true);
-	  } else if (ctrlEditor.active === true){
-	    ctrlGlyph.activate(true);
-	  } else if (ctrlGlyph.active === true){
-	    ctrlPalette.activate(true);
-	  }
-	} else if (keyboard.activeCombo("shift+tab") === true){
-	  if (ctrlPalette.active === true){
-	    ctrlGlyph.activate(true);
-	  } else if (ctrlGlyph.active === true){
-	    ctrlEditor.activate(true);
-	  } else if (ctrlEditor.active === true){
-	    ctrlPalette.activate(true);
-	  }
-	}
+        if (Keyboard.CodeSameAsName(code, "g") === true){
+          ctrlGlyph.activate(true);
+        } else if (Keyboard.CodeSameAsName(code, "p") === true){
+          ctrlPalette.activate(true);
+        }
       }
     };
 
@@ -312,6 +230,28 @@
 	  ctrlTerminal.displayMessage("Glyph Index: " + ctrlGlyph.glyph.toString());
 	}
       });
+      ctrlTerminal.on("saveGEP", function(cmd){
+        var p = Path.resolve(cmd);
+        console.log(p);
+        FS.access(p, FS.R_OK | FS.W_OK, function(err){
+          if (err && err.code !== "ENOENT") {
+            ctrlTerminal.displayError(err.toString());
+            console.log(err);
+            console.error("ERROR Saving GEP File \"" + cmd + "\".");
+            return;
+          }
+          FS.writeFile(p, gep.toString(true), function(err){
+            if (err){
+              ctrlTerminal.displayError("ERROR Writing out GEP File \"" + cmd + "\".");
+              console.error(err);
+              console.error("ERROR Writing out GEP File \"" + cmd + "\".");
+              return;
+            }
+            ctrlTerminal.displayMessage("Saved GEP file to \"" + cmd + "\".");
+            console.log("Saved GEP file to \"" + cmd + "\".");
+          });
+        });
+      });
     };
 
     this.getFocus = function(){
@@ -320,6 +260,8 @@
       keyboard.on("keydown", onKeyDown);
       keyboard.onCombo("ctrl+`", {on:onCtrlTildaCombo});
       ctrlEditor.activate(true);
+      cur = new Cursor(terminal);
+      cur.clear();
       focus = true;
     };
 

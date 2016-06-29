@@ -250,10 +250,10 @@
     var OnKeyDown = (function(code){
       var index = 0;
       
-      if (code === "f".charCodeAt(0)){
+      if (Keyboard.CodeSameAsName(code, "f") === true){
         palctrl = 0;
         dirty = true;
-      } else if (code === "b".charCodeAt(0)){
+      } else if (Keyboard.CodeSameAsName(code, "b") === true){
         palctrl = 1;
         dirty = true;
       } else if (Keyboard.CodeSameAsName(code, "up") === true){

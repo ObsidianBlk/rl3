@@ -2,8 +2,11 @@
   "name": "R3",
   "version": "0.0.1",
   "main": "index.html",
-  "window":{
-    "title":"R (The Roguelike Library) Demo",
-    "toolbar":true
+  "window": {
+    "title": "R (The Roguelike Library) Demo",
+    "toolbar": true
+  },
+  "dependencies": {
+    "requirejs": "^2.2.0"
   }
 }
