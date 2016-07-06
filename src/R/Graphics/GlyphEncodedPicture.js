@@ -243,10 +243,10 @@
       "backgroundIndex":{
         get:function(){return activeBG;},
         set:function(bg){
-          if (typeof(bg) === 'number'){
-            if (bg === null){
-              activeBG = bg;
-            } else if (bg < 0 || bg >= palette.length){
+          if (bg === null){
+            activeBG = null;
+          } else if (typeof(bg) === 'number'){
+            if (bg < 0 || bg >= palette.length){
               throw new RangeError("Palette index is out of bounds.");
             }
             activeBG = Math.floor(bg);

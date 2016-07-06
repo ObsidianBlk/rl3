@@ -74,6 +74,9 @@
       r: 0
     };
 
+    var undo = [];
+    var maxUndo = 10;
+
     var shiftJumpSize = 10; // How far the cursor will jump if shift is down.
     
     var cursorState = 0; // 0 = off | 1 = on ... surprise
@@ -82,6 +85,38 @@
 
     function OnRegionResize(region){dirty = true;}
 
+    function StoreUndo(c, r, pix){
+      if (undo.length === maxUndo){
+        undo.shift();
+      }
+      undo.push({
+        c:c,
+        r:r,
+        pix:pix
+      });
+    }
+
+    function DoUndo(){
+      if (undo.length > 0){
+        var info = undo.pop();
+        if (info.pix !== null){
+          var cglyph = gep.glyphIndex;
+          gep.glyphIndex = info.pix[0];
+          var cbg = gep.backgroundIndex;
+          gep.backgroundIndex = info.pix[2];
+          var cfg = gep.foregroundIndex;
+          gep.foregroundIndex = info.pix[1];
+
+          gep.setPix(info.c, info.r);
+          gep.glyphIndex = cglyph;
+          gep.backgroundIndex = cbg;
+          gep.foregroundIndex = cfg;
+        } else {
+          // TODO: Remove the row/column
+        }
+      }
+    }
+
     Object.defineProperties(this, {
       "dirty":{
 	get:function(){return dirty;}
@@ -89,6 +124,21 @@
 
       "active":{
 	get:function(){return active;}
+      },
+
+      "maxUndoLevels":{
+        get:function(){return maxUndo;},
+        set:function(mu){
+          if (typeof(mu) !== 'number'){
+            throw new TypeError("Expecting a number.");
+          } else if (mu <= 0){
+            throw new RangeError("Value must be greater than zero.");
+          }
+          maxUndo = mu;
+          if (undo.length > mu){
+            undo.splice(0, undo.length - mu);
+          }
+        }
       },
 
       "cursor":{
@@ -157,11 +207,19 @@
 	      offset.r += r;
 	    }
 	  }
+          if (c >= 0 && c < gep.width && r >= 0 && r < gep.height){
+            StoreUndo(c, r, gep.getPix(c, r));
+          } else {
+            StoreUndo(c, r, null);
+          }
 	  gep.setPix(c, r);
 	  dirty = true;
 	}
 
-
+      } else if (Keyboard.CodeSameAsName(code, "z") === true){
+        if (keyboard.activeCombo("ctrl+z") === true){
+          DoUndo();
+        }
       } else if (Keyboard.CodeSameAsName(code, "up") === true){
 	shiftActive = keyboard.activeCombo("shift+up");
 	UnrenderCursor();
