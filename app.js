@@ -14,11 +14,13 @@ requirejs([
   'src/R/ECS/Entity',
   'src/R/ECS/ComponentDB',
   'src/R/ECS/Assembler',
+  'src/Game/ComponentDef',
   'src/Game/FSM',
+  'src/Game/System/GameMap',
   'src/Game/States/GameState',
   'src/Game/States/MainMenuState',
   'src/Game/States/GEPEditorState'
-], function(Heartbeat, Keyboard, Color, Glyph, Terminal, Cursor, Tileset, Tilemap, Entity, ComponentDB, Assembler, FSM, GameState, MainMenuState, GEPEditorState){
+], function(Heartbeat, Keyboard, Color, Glyph, Terminal, Cursor, Tileset, Tilemap, Entity, ComponentDB, Assembler, ComponentDef, FSM, GameMap, GameState, MainMenuState, GEPEditorState){
 
   // --------------------------------
   // Defining a "Document Ready" function. This is only garanteed to work on Chrome at the moment.
@@ -36,45 +38,10 @@ requirejs([
   // --------------------------------
   // App starts here :)
   ready(function(){
+    var assembler = ComponentDef();
+    
     // --------------------------------------------------------------------
-    // Temporary Keyboard input test code!
     var kinput = new Keyboard(window);
-/*    kinput.on("keydown", function(code){
-      var key = Keyboard.CodeToKeyName(code);
-      console.log("[keydown]: <" + ((key !== "") ? key : "UNKNOWN") + ">");
-    });
-
-    kinput.on("keyup", function(code){
-      var key = Keyboard.CodeToKeyName(code);
-      console.log("[keyup]: <" + ((key !== "") ? key : "UNKNOWN") + ">");
-    });
-
-    kinput.on("comboon", function(comboName){
-      console.log("[comboon]: " + comboName);
-    });
-
-    kinput.on("combooff", function(comboName){
-      console.log("[combooff]: " + comboName);
-    });
-
-    kinput.onCombo("A", {
-      on:function(){
-	console.log("[SPECIAL ON] - Shift-A");
-      },
-      off:function(){
-	console.log("[SPECIAL OFF] - Shift-A");
-      }
-    });
-
-    kinput.onCombo("ctrl+B", {
-      on:function(){
-	console.log("[SUPER SPECIAL ON] - CTRL-SHIFT-B");
-      },
-      off:function(){
-	console.log("[SUPER SPECIAL OFF] - CTRL-SHIFT-B");
-      }
-    });*/
-
     kinput.rollOffCombos = true;
     kinput.notifyKeysOnce = true;
 
@@ -111,7 +78,7 @@ requirejs([
 	description: "This is a wooden wall... Sooo grainey",
 	primeglyph: parseInt("DB", 16),
 	betaglyph: -1,
-	movability: 1.0,
+	movability: 0.0,
 	visibility: 1.0,
 	foreground: "#a58740",
 	background: null
@@ -124,18 +91,13 @@ requirejs([
       map.createRoom(0, 0, 15, 15, findex, windex);
       map.createRoom(14, 5, 10, 3, findex, windex);
       map.createRoom(23, 0, 10, 30, findex, windex);
+      map.createRoom(54, 5, 10, 10, findex, windex);
+
 
       // --------------------------------------------------------------------
       // Temporary ECS Test code
 
-      var assembler = new Assembler();
-      var cdb = assembler.db;
-
-      cdb.defineComponent("position", {x:0, y:0});
-      cdb.defineComponent("demographic", {race:"human", gender:"male"});
-      cdb.defineComponent("viz", {primeglyph:1, betaglyph:2});
-
-      assembler.defineAssemblage("creature", "human", "position,demographic,viz");
+      /*assembler.defineAssemblage("creature", "human", "position,demographic,viz");
       assembler.defineAssemblage("creature", "elf", [
 	{name:"position"},
 	{name:"demographic", idata:{race:"elf"}},
@@ -143,14 +105,22 @@ requirejs([
       ]);
 
       var human = assembler.createEntity("creature", "human");
-      var elf = assembler.createEntity("creature", "elf");
+      var elf = assembler.createEntity("creature", "elf");*/
+      var player = new Entity("player", "actor");
+      assembler.db.addToEntity(player, "position");
+      assembler.db.addToEntity(player, "visual");
+      player.visual.primeGlyph = 2;
+      player.visual.tint = "#FFF";
 
       // --------------------------------------------------------------------
 
       var fsm = new FSM();
       new MainMenuState(term, kinput, fsm, true);
-      new GameState(term, kinput, map, fsm);
+      new GameState(term, kinput, fsm);
       new GEPEditorState(term, kinput, fsm);
+
+      fsm.get("GameState").map = new GameMap();
+      fsm.get("GameState").map.tilemap = map;
 
 
       var lastDigitSize = 0;

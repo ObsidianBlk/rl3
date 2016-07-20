@@ -8,7 +8,7 @@
       'src/R/Graphics/Terminal',
       'src/R/Graphics/Cursor',
       'src/R/Input/Keyboard',
-      'src/R/Map/Tilemap'
+      'src/Game/System/GameMap'
     ], factory);
   } else if (typeof exports === 'object') {
     /* -------------------------------------------------
@@ -20,7 +20,7 @@
 	require('src/R/Graphics/Terminal'),
 	require('src/R/Graphics/Cursor'),
 	require('src/R/Input/Keyboard'),
-        require('src/R/Map/Tilemap')
+        require('src/Game/System/GameMap')
       );
     }
   } else {
@@ -29,6 +29,9 @@
        ------------------------------------------------- */
     if (typeof(root.FSM) === 'undefined'){
       throw new Error("Missing required class 'FSM'.");
+    }
+    if (typeof(root.System) === 'undefined'){
+      throw new Error("Missing required class 'System.GameMap'.");
     }
     if (typeof(root.R) === 'undefined'){
       throw new Error("The R library has not been loaded.");
@@ -42,25 +45,37 @@
 	root.R.Graphics.Terminal,
 	root.R.Graphics.Cursor,
 	root.R.Input.Keyboard,
-        root.R.Map.Tilemap
+        root.System.GameMap
       );
     }
   }
-})(this, function (FSM, Terminal, Cursor, Keyboard, Tilemap) {
+})(this, function (FSM, Terminal, Cursor, Keyboard, GameMap) {
 
-  function GameState(terminal, keyboard, map, fsm, setActive){
+  function GameState(terminal, keyboard, fsm, setActive){
     if (!(terminal instanceof Terminal)){
       throw new TypeError("Argument <terminal> expected to be a Terminal instance.");
     }
     if (!(keyboard instanceof Keyboard)){
       throw new TypeError("Argument <keyboard> expected to be a Keyboard instance.");
     }
-    if (!(map instanceof Tilemap)){
-      throw new TypeError("Argument <map> expected to be a Tilemap instance.");
-    }
 
+    var map = null;
     var focus = false;
     var cursor = null;
+
+    Object.defineProperties(this, {
+      "map":{
+        enumerate:true,
+        get:function(){return map;},
+        set:function(m){
+          if (m === null || m instanceof GameMap){
+            map = m;
+          } else {
+            throw new TypeError("Expecting a GameMap instance objector null.");
+          }
+        }
+      }
+    });
 
     function onRenderResize(newres, oldres){
       cursor.region = {
@@ -76,25 +91,28 @@
 
       cursor.c = 0;
       cursor.r = 0;
-      var mapinfo = map.getRegionTileInfo(0, 0, 35, 30, false);
-      Object.keys(mapinfo).forEach(function(key){
-        var tile = mapinfo[key].tile;
-	var gindex = tile.primeglyph;
-        var opts = {};
-        if (tile.foreground !== null){
-          opts.foreground = tile.foreground;
-        }
-        if (tile.background !== null){
-          opts.background = tile.background;
-        }
-	var coords = mapinfo[key].coord;
-        var coordCount = coords.length/2;
-        for (var i=0; i < coordCount; i++){
-          cursor.c = coords[i*2];
-          cursor.r = coords[(i*2)+1] + 4; // The +4 is an explicit shift down.
-          cursor.set(gindex, Cursor.WRAP_TYPE_CHARACTER, opts);
-        }
-      });
+      if (map instanceof GameMap){
+        map.draw(cursor);
+        /*var mapinfo = map.getRegionTileInfo(0, 0, 64, 30, false);
+        Object.keys(mapinfo).forEach(function(key){
+          var tile = mapinfo[key].tile;
+	  var gindex = tile.primeglyph;
+          var opts = {};
+          if (tile.foreground !== null){
+            opts.foreground = tile.foreground;
+          }
+          if (tile.background !== null){
+            opts.background = tile.background;
+          }
+	  var coords = mapinfo[key].coord;
+          var coordCount = coords.length/2;
+          for (var i=0; i < coordCount; i++){
+            cursor.c = coords[i*2];
+            cursor.r = coords[(i*2)+1] + 4; // The +4 is an explicit shift down.
+            cursor.set(gindex, Cursor.WRAP_TYPE_CHARACTER, opts);
+          }
+        });*/
+      }
     }
 
     function onExitCombo(){
@@ -108,6 +126,7 @@
     this.getFocus = function(){
       terminal.on("renderResize", onRenderResize);
       keyboard.onCombo("ctrl+shift+esc", onExitCombo);
+      cursor.clear();
       onRenderResize([terminal.columns, terminal.rows], null);
       focus = true;
     };

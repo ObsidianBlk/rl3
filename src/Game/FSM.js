@@ -41,6 +41,16 @@
     });
 
 
+
+    this.get = function(name){
+      if (typeof(name) !== 'string'){
+        name = activeState;
+      }
+      if (name in registeredStates){
+        return registeredStates[name];
+      }
+      return null;
+    };
     
     /** 
      * Registers a given <state> to the Finite-State-Machine. If <setActive> is true, the given <state> is set as the active state.
