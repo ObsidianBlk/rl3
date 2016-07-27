@@ -20,8 +20,25 @@ requirejs([
   'src/Game/States/GameState',
   'src/Game/States/MainMenuState',
   'src/Game/States/GEPEditorState'
-], function(Heartbeat, Keyboard, Color, Glyph, Terminal, Cursor, Tileset, Tilemap, Entity, ComponentDB, Assembler, ComponentDef, FSM, GameMap, GameState, MainMenuState, GEPEditorState){
+], function(Heartbeat,
+            Keyboard,
+            Color,
+            Glyph,
+            Terminal,
+            Cursor,
+            Tileset,
+            Tilemap,
+            Entity,
+            ComponentDB,
+            Assembler,
+            ComponentDef,
+            FSM,
+            GameMap,
+            GameState,
+            MainMenuState,
+            GEPEditorState){
 
+  
   // --------------------------------
   // Defining a "Document Ready" function. This is only garanteed to work on Chrome at the moment.
   function ready(callback){
@@ -109,8 +126,11 @@ requirejs([
       var player = new Entity("player", "actor");
       assembler.db.addToEntity(player, "position");
       assembler.db.addToEntity(player, "visual");
+      assembler.db.addToEntity(player, "actor");
       player.visual.primeGlyph = 2;
       player.visual.tint = "#FFF";
+      player.position.c = 1;
+      player.position.r = 1;
 
       // --------------------------------------------------------------------
 
@@ -119,8 +139,12 @@ requirejs([
       new GameState(term, kinput, fsm);
       new GEPEditorState(term, kinput, fsm);
 
-      fsm.get("GameState").map = new GameMap();
-      fsm.get("GameState").map.tilemap = map;
+      var gstate = fsm.get("GameState");
+      gstate.map = new GameMap();
+      gstate.map.tilemap = map;
+      gstate.player = player;
+      //gstate.map.setTarget(player);
+      
 
 
       var lastDigitSize = 0;

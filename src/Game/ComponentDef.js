@@ -48,6 +48,7 @@
       tint: null,
       background: null
     });
+    cdb.defineComponent("actor", {});
 
     return assembler;
   };

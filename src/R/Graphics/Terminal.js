@@ -88,10 +88,12 @@
     };
 
     this.clear = function(ignoreDirty){
+      if (glyph !== null || foreground !== null || background !== null){
+        dirty = (ignoreDirty === true) ? false : true;
+      }
       glyph = null;
       foreground = null;
       background = null;
-      dirty = (ignoreDirty === true) ? false : true;
     };
 
     Object.defineProperties(this, {
@@ -450,6 +452,7 @@
 	var x = (cell.index%columns)*cw;
 	var y = Math.floor(cell.index/columns)*ch;
 
+        // TODO: Reorganize to render groups one glyph index value at a time.
 	if (cell.glyphCode !== null){ // Check to see if there's something to render.
 	  var pixels = cell.glyph.pixels;
 	  var pcount = Math.floor(pixels.data.length/4);

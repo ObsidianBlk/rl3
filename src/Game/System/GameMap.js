@@ -119,9 +119,26 @@
 
     this.draw = function(cursor){
       if (cursor instanceof Cursor){
-        //TODO: Modify to follow target if there is one.
+
+        var hcurC = Math.floor(cursor.columns*0.5);
+        var hcurR = Math.floor(cursor.rows*0.5);
         
-        var mapinfo = tmap.getRegionTileInfo(0, 0, cursor.columns, cursor.rows, false);
+        var offsetC = 0;
+        var offsetR = 0;
+        if (target !== null){
+          offsetC = target.position.c - hcurC;
+          offsetR = target.position.r - hcurR;
+        }
+
+        var vislist = evis.filter(function(e){
+          if (e.position.c >= target.position.c - hcurC && e.position.c <= target.position.c + hcurC){
+            if (e.position.r >= target.position.r -hcurR && e.position.r <= target.position.r + hcurR){
+              return true;
+            }
+          }
+          return false;
+        });
+        var mapinfo = tmap.getRegionTileInfo(offsetC, offsetR, cursor.columns, cursor.rows, false);
         Object.keys(mapinfo).forEach(function(key){
           var tile = mapinfo[key].tile;
 	  var gindex = tile.primeglyph;
@@ -135,9 +152,22 @@
 	  var coords = mapinfo[key].coord;
           var coordCount = coords.length/2;
           for (var i=0; i < coordCount; i++){
-            cursor.c = coords[i*2];
-            cursor.r = coords[(i*2)+1] + 4; // The +4 is an explicit shift down.
-            cursor.set(gindex, Cursor.WRAP_TYPE_CHARACTER, opts);
+            cursor.c = coords[i*2] - offsetC;
+            cursor.r = (coords[(i*2)+1] -offsetR)+ 4; // The +4 is an explicit shift down.
+            var v = vislist.filter(function(e){
+              if (e.position.c === coords[i*2] && e.position.r === coords[(i*2) + 1]){
+                return true;
+              }
+              return false;
+            });
+            if (v.length > 0){
+              cursor.set(v[0].visual.primeglyph, Cursor.WRAP_TYPE_CHARACTER, {
+                foreground: v[0].visual.foreground,
+                background: v[0].visual.background
+              });
+            } else {
+              cursor.set(gindex, Cursor.WRAP_TYPE_CHARACTER, opts);
+            }
           }
         });
       }
