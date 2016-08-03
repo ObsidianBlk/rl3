@@ -125,7 +125,7 @@
       },
 
       "foreground":{
-	get:function(){return (foreground !== null) ? new Color(foreground) : null;},
+	get:function(){return foreground;},
 	set:function(fg){
 	  if (foreground !== fg){
 	    var c = null;
@@ -143,7 +143,7 @@
       },
 
       "background":{
-	get:function(){return (background !== null) ? new Color(background) : null;},
+	get:function(){return background;},
 	set:function(bg){
 	  if (background !== bg){
 	    var c = null;
@@ -191,6 +191,7 @@
     
     var glyph = null;//(typeof(options.glyph) !== 'undefined' && options.glyph instanceof Glyph) ? options.glyph : null;
     var cells = [];
+    var dcells = [];
     
     var minColumns = (typeof(options.minColumns) === 'number' && options.minColumns > 0) ? Math.floor(options.minColumns) : 80;
     var minRows = (typeof(options.minRows) === 'number' && options.minRows > 0) ? Math.floor(options.minRows) : 80;
@@ -363,6 +364,9 @@
 	  }
 	  var sg = GetSubGlyph(code);
 	  cells[index].set(sg, options);
+          if (cells[index].dirty === true){
+            dcells.push(cells[index]);
+          }
 	}
       }
     };
@@ -374,6 +378,9 @@
 	  if (cells[index].glyphCode !== null){
 	    DropSubGlyph(cells[index].glyphCode);
 	    cells[index].clear();
+            if (cells[index].dirty === true){
+              dcells.push(cells[index]);
+            }
 	  }
 	}
       }
@@ -390,6 +397,9 @@
 		if (code !== null){
 		  DropSubGlyph(code);
 		  cells[index].clear();
+                  if (cells[index].dirty === true){
+                    dcells.push(cells[index]);
+                  }
 		}
 	      }
 	    }
@@ -408,6 +418,9 @@
 	  if (code !== null){
 	    DropSubGlyph(code);
 	    cells[index].clear();
+            if (cells[index].dirty === true){
+              dcells.push(cells[index]);
+            }
 	  }
 	}
       }
@@ -422,6 +435,9 @@
 	  if (code !== null){
 	    DropSubGlyph(code);
 	    cells[index].clear();
+            if (cells[index].dirty === true){
+              dcells.push(cells[index]);
+            }
 	  }
 	}
       }
@@ -433,10 +449,15 @@
 
     this.flip = function(){
       if (glyph === null){return;}
-      var dcells = cells.filter(function(c){
-	return c.dirty;
+      var dclen = dcells.length;
+      if (dclen <= 0){return;}
+      dcells.sort(function(ca, cb){
+        var cag = (ca.glyphCode === null) ? -1 : ca.glyphCode;
+        var cbg = (cb.glyphCode === null) ? -1 : cb.glyphCode;
+        return cag - cbg;
       });
 
+      
       var cw = glyph.cell_width;
       var ch = glyph.cell_height;
 
@@ -444,7 +465,10 @@
       var color = new Color();
       var mcolor = new Color();
 
-      var dclen = dcells.length;
+      var pixels = null;
+      var bpixels = null;
+      var pcount = 0;
+      var lastGlyphCode = null;
       for (var c=0; c < dclen; c++){
 	var cell = dcells[c];
 	cell.resetDirtyState();
@@ -452,12 +476,18 @@
 	var x = (cell.index%columns)*cw;
 	var y = Math.floor(cell.index/columns)*ch;
 
-        // TODO: Reorganize to render groups one glyph index value at a time.
 	if (cell.glyphCode !== null){ // Check to see if there's something to render.
-	  var pixels = cell.glyph.pixels;
-	  var pcount = Math.floor(pixels.data.length/4);
+          if (cell.glyphCode !== lastGlyphCode){
+	    pixels = cell.glyph.pixels;
+            if (bpixels === null){
+              bpixels = cell.glyph.pixels;
+            }
+	    pcount = Math.floor(pixels.data.length/4);
+            lastGlyphCode = cell.glyphCode;
+          }
+          
 	  
-	  if (cell.background !== null){
+	  /*if (cell.background !== null){
 	    var old = context.fillStyle;
 	    context.fillStyle = cell.background.hex;
 	    context.fillRect(x, y, cw, ch);
@@ -467,39 +497,45 @@
 	    context.clearRect(x, y, cw, ch);
 	  }
 
-	  var cpixels = context.getImageData(x, y, cw, ch);
+	  var cpixels = context.getImageData(x, y, cw, ch);*/
+          var hasbg = cell.background !== null;
 	  if (cell.foreground !== null){
-	    tint = cell.foreground;
-	  } else {tint = (new Color()).white();}
+            if (tint.eq(cell.foreground) === false){
+	      tint = new Color(cell.foreground);
+            }
+	  } else {tint.white();}
+
 
 	  for (var p=0; p < pcount; p++){
+            var index = p*4;
 	    color.setRGBA(
-	      cpixels.data[(p*4)],
-	      cpixels.data[(p*4)+1],
-	      cpixels.data[(p*4)+2],
-	      cpixels.data[(p*4)+3]
-	    ).blend(
+              (hasbg) ? cell.background.r : 0,
+              (hasbg) ? cell.background.g : 0,
+              (hasbg) ? cell.background.b : 0,
+              (hasbg) ? cell.background.a : 0
+            ).blend(
 	      mcolor.setRGBA(
-		pixels.data[(p*4)],
-		pixels.data[(p*4)+1],
-		pixels.data[(p*4)+2],
-		pixels.data[(p*4)+3]
+		pixels.data[index],
+		pixels.data[index+1],
+		pixels.data[index+2],
+		pixels.data[index+3]
 	      ).multiply(tint)
 	    );
 
-	    pixels.data[(p*4)] = color.r;
-	    pixels.data[(p*4)+1] = color.g;
-	    pixels.data[(p*4)+2] = color.b;
-	    pixels.data[(p*4)+3] = color.a;
+	    bpixels.data[index] = color.r;
+	    bpixels.data[index+1] = color.g;
+	    bpixels.data[index+2] = color.b;
+	    bpixels.data[index+3] = color.a;
 	  }
 
 	  // Output the pixels
-          context.putImageData(pixels, x, y);
+          context.putImageData(bpixels, x, y);
 	} else {
 	  // If there's no glyphCode, then this cell is empty. Simply clear it!
 	  context.clearRect(x, y, cw, ch);
 	}
       }
+      dcells.splice(0, dcells.length);
     };
   }
   Terminal.prototype.__proto__ = Emitter.prototype;

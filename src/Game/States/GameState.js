@@ -179,7 +179,7 @@
     this.update = function(timestamp, fps){
       if (focus === true){
         if (updateMap === true){
-          cursor.clear();
+          //cursor.clear();
           updateMap = false;
           Render();
         }

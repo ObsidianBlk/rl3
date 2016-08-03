@@ -180,7 +180,58 @@
       return null;
     };
 
+
     this.getRegionTileInfo = function(x, y, w, h, onlySeen){
+      if (map === null){
+        throw new Error("Map not initialized.");
+      }
+
+      var tileinfo = [];
+      onlySeen = (onlySeen === true) ? true : false;
+      if (x < 0){
+	w += x;
+	x = 0;
+      } else if (x >= width){
+	w = 0;
+      }
+
+      if (y < 0){
+	h += y;
+	y = 0;
+      } else if (y >= height){
+	h = 0;
+      }
+
+      if (w > 0 && h > 0){
+        var ex = (x+w > width) ? width - x : x+w;
+        var ey = (y+h > height) ? height - y : y+h;
+
+        for (var j=y; j < ey; j++){
+	  var index = j*width;
+          tileinfo.push([]);
+	  for (var i=x; i < ex; i++){
+            var row = tileinfo[tileinfo.length-1];
+            
+            if (map[index+i].index >= 0 && (onlySeen === false || (onlySeen === true && map[index+i].seen === true))){
+              row.push({
+                c: i,
+                r: j,
+                tile:tile[map[index+i].index]
+              });
+	    } else {
+              row.push({
+                c: i,
+                r: j,
+                tile:null
+              });
+            }
+          }
+        }
+      }
+      return tileinfo;
+    };
+    
+    this.getRegionTileInfo2 = function(x, y, w, h, onlySeen){
       if (map === null){
 	throw new Error("Map not initialized.");
       }

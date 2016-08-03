@@ -25,7 +25,8 @@
 
 
   function clamp(v, vmin, vmax){
-    return Math.min(vmax, Math.max(vmin, v));
+    return (v < vmin) ? vmin : (v > vmax) ? vmax : v;
+    //return Math.min(vmax, Math.max(vmin, v));
   }
 
   function componentToHex(c) {
@@ -230,12 +231,12 @@
 
     this.blend = function(c){
       c = (!(c instanceof Color)) ? new Color(c) : c;
-      var alpha = c.af;
+      var alpha = c.a*INV_COLOR;
       var ainv = 1.0 - alpha;
 
-      color.r = clamp(Math.floor((((color.r*INV_COLOR)*ainv) + (c.rf*alpha))*255), 0, 255);
-      color.g = clamp(Math.floor((((color.g*INV_COLOR)*ainv) + (c.gf*alpha))*255), 0, 255);
-      color.b = clamp(Math.floor((((color.b*INV_COLOR)*ainv) + (c.bf*alpha))*255), 0, 255);
+      color.r = clamp(Math.floor((((color.r*INV_COLOR)*ainv) + (c.r*INV_COLOR*alpha))*255), 0, 255);
+      color.g = clamp(Math.floor((((color.g*INV_COLOR)*ainv) + (c.g*INV_COLOR*alpha))*255), 0, 255);
+      color.b = clamp(Math.floor((((color.b*INV_COLOR)*ainv) + (c.b*INV_COLOR*alpha))*255), 0, 255);
       color.a = clamp(color.a + c.a, 0, 255);
       return this;
     };
@@ -274,10 +275,10 @@
 
     this.multiply = function(c){
       c = (!(c instanceof Color)) ? new Color(c) : c;
-      color.r = Math.floor(((color.r*INV_COLOR) * c.rf) * 255);
-      color.g = Math.floor(((color.g*INV_COLOR) * c.gf) * 255);
-      color.b = Math.floor(((color.b*INV_COLOR) * c.bf) * 255);
-      color.a = clamp(Math.floor(((color.a*INV_COLOR) * c.af) * 255), 0, 255);
+      color.r = Math.floor(((color.r*INV_COLOR) * c.r*INV_COLOR) * 255);
+      color.g = Math.floor(((color.g*INV_COLOR) * c.g*INV_COLOR) * 255);
+      color.b = Math.floor(((color.b*INV_COLOR) * c.b*INV_COLOR) * 255);
+      color.a = clamp(Math.floor(((color.a*INV_COLOR) * c.a*INV_COLOR) * 255), 0, 255);
       return this;
     };
 
