@@ -128,16 +128,16 @@
 	get:function(){return foreground;},
 	set:function(fg){
 	  if (foreground !== fg){
-	    var c = null;
-	    if (fg !== null){
-	      c = new Color(fg);
-	      if (foreground !== null && foreground.eq(c) === true){ // old foreground matches new color... so... no change.
-		return;
-	      }
-	    }
-
-	    foreground = c;
-	    dirty = true;
+            if (foreground === null){
+              foreground = new Color(fg);
+              dirty = true;
+            } else if (fg === null){
+              foreground = null;
+              dirty = true;
+            } else if (foreground.eq(fg) === false){
+              foreground.set(fg);
+              dirty = true;
+            }
 	  }
 	}
       },
@@ -145,17 +145,17 @@
       "background":{
 	get:function(){return background;},
 	set:function(bg){
-	  if (background !== bg){
-	    var c = null;
-	    if (bg !== null){
-	      c = new Color(bg);
-	      if (background !== null && background.eq(c) === true){ // old background matches new color... so... no change.
-		return;
-	      }
-	    }
-
-	    background = c;
-	    dirty = true;
+          if (background !== bg){
+            if (background === null){
+              background = new Color(bg);
+              dirty = true;
+            } else if (bg === null){
+              background = null;
+              dirty = true;
+            } else if (background.eq(bg) === false){
+              background.set(bg);
+              dirty = true;
+            }
 	  }
 	}
       },
@@ -204,24 +204,21 @@
 
     function GetSubGlyph(code){
       var sg = null;
-      if (glyph !== null){
-	if (code in sglyph){
-	  sglyph[code].ref += 1;
-	  sg = sglyph[code].subglyph;
-	} else if (code >= 0 && code < glyph.elements){
-	  sg = glyph.get(code);
-	  sglyph[code] = {
-	    ref: 1,
-	    subglyph: sg
-	  };
-	}
+      if (code in sglyph){
+	sglyph[code].ref += 1;
+	sg = sglyph[code].subglyph;
+      } else if (code >= 0 && code < glyph.elements){
+	sg = glyph.get(code);
+	sglyph[code] = {
+	  ref: 1,
+	  subglyph: sg
+	};
       }
       return sg;
     }
 
     function DropSubGlyph(code, all){
-      if (glyph !== null && code in sglyph){
-	all = (all === true) ? true : false;
+      if (code in sglyph){
 	if (sglyph[code].ref - 1 <= 0 || all === true){
 	  delete sglyph[code];
 	} else {
@@ -372,16 +369,14 @@
     };
 
     this.clearCell = function(c, r){
-      if (glyph !== null){
-	if (c >= 0 && c < columns && r >= 0 && r < rows){
-	  var index = (columns*r)+c;
-	  if (cells[index].glyphCode !== null){
-	    DropSubGlyph(cells[index].glyphCode);
-	    cells[index].clear();
-            if (cells[index].dirty === true){
-              dcells.push(cells[index]);
-            }
-	  }
+      if (c >= 0 && c < columns && r >= 0 && r < rows){
+	var index = (columns*r)+c;
+	if (cells[index].glyphCode !== null){
+	  DropSubGlyph(cells[index].glyphCode);
+	  cells[index].clear();
+          if (cells[index].dirty === true){
+            dcells.push(cells[index]);
+          }
 	}
       }
     };
@@ -451,12 +446,13 @@
       if (glyph === null){return;}
       var dclen = dcells.length;
       if (dclen <= 0){return;}
-      dcells.sort(function(ca, cb){
+      /*dcells.sort(function(ca, cb){
         var cag = (ca.glyphCode === null) ? -1 : ca.glyphCode;
         var cbg = (cb.glyphCode === null) ? -1 : cb.glyphCode;
         return cag - cbg;
-      });
+      });*/
 
+      var defaultBG = new Color();
       
       var cw = glyph.cell_width;
       var ch = glyph.cell_height;
@@ -498,6 +494,7 @@
 	  }
 
 	  var cpixels = context.getImageData(x, y, cw, ch);*/
+          
           var hasbg = cell.background !== null;
 	  if (cell.foreground !== null){
             if (tint.eq(cell.foreground) === false){
@@ -508,11 +505,8 @@
 
 	  for (var p=0; p < pcount; p++){
             var index = p*4;
-	    color.setRGBA(
-              (hasbg) ? cell.background.r : 0,
-              (hasbg) ? cell.background.g : 0,
-              (hasbg) ? cell.background.b : 0,
-              (hasbg) ? cell.background.a : 0
+	    color.set(
+              (hasbg) ? cell.background : defaultBG
             ).blend(
 	      mcolor.setRGBA(
 		pixels.data[index],

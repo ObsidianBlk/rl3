@@ -138,14 +138,15 @@
           }
           return false;
         });
-        var mapinfo = tmap.getRegionTileInfo(offsetC, offsetR, cursor.columns, cursor.rows, false);
-        mapinfo.forEach(function(row){
-          for (var c = 0; c < row.length; c++){
-            cursor.c = row[c].c - offsetC;
-            cursor.r = row[c].r - offsetR;
-            if (row[c].tile !== null){
-              var tile = row[c].tile;
-	      var gindex = tile.primeglyph;
+        cursor.r = 0;
+        cursor.c = 0;
+        for (var r=0; r < cursor.rows; r++){
+          cursor.r = r;
+          for (var c=0; c < cursor.columns; c++){
+            cursor.c = c;
+            var tile = tmap.getTile(offsetC + c, offsetR + r);
+            if (tile !== null){
+              var gindex = tile.primeglyph;
               var opts = {};
               if (tile.foreground !== null){
                 opts.foreground = tile.foreground;
@@ -154,7 +155,7 @@
                 opts.background = tile.background;
               }
               var v = vislist.filter(function(e){
-                if (e.position.c === row[c].c && e.position.r === row[c].r){
+                if (e.position.c === offsetC+c && e.position.r === offsetR+r){
                   return true;
                 }
                 return false;
@@ -171,7 +172,7 @@
               cursor.del();
             }
           }
-        });
+        }
         /*Object.keys(mapinfo).forEach(function(key){
           var tile = mapinfo[key].tile;
 	  var gindex = tile.primeglyph;
