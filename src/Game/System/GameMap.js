@@ -8,7 +8,8 @@
       'src/R/System/Emitter',
       'src/R/Graphics/Cursor',
       'src/R/Map/Tilemap',
-      'src/R/ECS/Entity'
+      'src/R/ECS/Entity',
+      'src/R/ECS/Assembler'
     ], factory);
   } else if (typeof exports === 'object') {
     /* -------------------------------------------------
@@ -19,7 +20,8 @@
         require('src/R/System/Emitter'),
 	require('src/R/Graphics/Cursor'),
         require('src/R/Map/Tilemap'),
-        require('src/R/ECS/Entity')
+        require('src/R/ECS/Entity'),
+        require('src/R/ECS/Assembler')
       );
     }
   } else {
@@ -37,16 +39,20 @@
         root.R.System.Emitter,
 	root.R.Graphics.Cursor,
         root.R.Map.Tilemap,
-        root.R.ECS.Entity
+        root.R.ECS.Entity,
+        root.R.ECS.Assembler
       );
     }
   }
-})(this, function (Emitter, Cursor, Tilemap, Entity) {
+})(this, function (Emitter, Cursor, Tilemap, Entity, Assembler) {
 
 
   function GameMap(){
     Emitter.call(this);
 
+    var assembler = null;
+    var doordef = {opened: "", closed: ""};
+    
     var tmap = null;
     var target = null;
     var entities = {};
@@ -63,6 +69,19 @@
           }
           tmap = tm;
           // TODO: Maybe clear out the entities?? IDK... just a thought.
+        }
+      },
+
+      "assembler":{
+        enumerate:true,
+        get:function(){return assembler;},
+        set:function(a){
+          if (!(a instanceof Assembler) && a !== null){
+            throw new TypeError("Expected Assembler instance.");
+          }
+          if (a !== assembler){
+            assembler = a;
+          }
         }
       },
 
@@ -115,6 +134,11 @@
           target = e;
         }
       }
+    };
+
+    this.defineDoors = function(opened, closed){
+      doordef.opened = opened;
+      doordef.closed = closed;
     };
 
     this.draw = function(cursor){

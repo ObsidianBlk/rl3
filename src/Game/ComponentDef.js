@@ -50,6 +50,13 @@
     });
     cdb.defineComponent("actor", {});
 
+    cdb.defineComponent("physical", {
+      movability: 0.0, // The ability to move THROUGH the entity.
+      visibility: 0.0 // The ability to see THROUGH the entity.
+    });
+
+    cdb.defineComponent("door", {});
+    
     return assembler;
   };
 });

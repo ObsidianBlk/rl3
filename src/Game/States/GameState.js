@@ -108,17 +108,27 @@
 
     function onKeyUp(code){
       if (player !== null){
+        var dc = 0;
+        var dr = 0;
         if (Keyboard.CodeSameAsName(code, "up") === true){
-          player.position.r -= 1;
-          updateMap = true;
+          dr = -1;
         } else if (Keyboard.CodeSameAsName(code, "down") === true){
-          player.position.r += 1;
-          updateMap = true;
+          dr = 1;
         } else if (Keyboard.CodeSameAsName(code, "left") === true){
-          player.position.c -= 1;
-          updateMap = true;
+          dc = -1;
         } else if (Keyboard.CodeSameAsName(code, "right") === true){
-          player.position.c += 1;
+          dc = 1;
+        }
+
+        var tile = null;
+        if (map !== null){
+          tile = map.tilemap.getTile(player.position.c + dc, player.position.r + dr);
+          console.log(tile.movability);
+        }
+
+        if (tile !== null &&  tile.movability >= 1.0 && (dc !== 0 || dr !== 0)){
+          player.position.c += dc;
+          player.position.r += dr;
           updateMap = true;
         }
       }

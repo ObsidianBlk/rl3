@@ -132,6 +132,20 @@ requirejs([
       player.position.c = 1;
       player.position.r = 1;
 
+      assembler.defineAssemblage("door", "door_opened", [
+        {name: "visual", idata:{primeglyph: 8, tint: "#a58740"}},
+        {name: "position"},
+        {name: "physical", idata:{movability: 1.0, visibility: 1.0}},
+        {name: "door"}
+      ]);
+
+      assembler.defineAssemblage("door", "door_closed", [
+        {name: "visual", idata:{primeglyph: 10, tint: "#a58740"}},
+        {name: "position"},
+        {name: "physical"},
+        {name: "door"}
+      ]);
+
       // --------------------------------------------------------------------
 
       var fsm = new FSM();
