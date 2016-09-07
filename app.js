@@ -127,6 +127,7 @@ requirejs([
       assembler.db.addToEntity(player, "position");
       assembler.db.addToEntity(player, "visual");
       assembler.db.addToEntity(player, "actor");
+      player.player = {};
       player.visual.primeGlyph = 2;
       player.visual.tint = "#FFF";
       player.position.c = 1;
@@ -154,7 +155,6 @@ requirejs([
       new GEPEditorState(term, kinput, fsm);
 
       var gstate = fsm.get("GameState");
-      gstate.map = new GameMap();
       gstate.map.tilemap = map;
       gstate.player = player;
       //gstate.map.setTarget(player);

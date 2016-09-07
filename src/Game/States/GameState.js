@@ -5,10 +5,13 @@
        ------------------------------------------------- */
     define([
       'src/Game/FSM',
+      'src/R/ECS/World',
       'src/R/ECS/Entity',
       'src/R/Graphics/Terminal',
       'src/R/Graphics/Cursor',
       'src/R/Input/Keyboard',
+      'src/Game/System/Navigation',
+      'src/Game/System/Player',
       'src/Game/System/GameMap'
     ], factory);
   } else if (typeof exports === 'object') {
@@ -18,10 +21,13 @@
     if(typeof module === "object" && module.exports){
       module.exports = factory(
 	require('src/Game/FSM'),
+        require('src/R/ECS/World'),
         require('src/R/ECS/Entity'),
 	require('src/R/Graphics/Terminal'),
 	require('src/R/Graphics/Cursor'),
 	require('src/R/Input/Keyboard'),
+        require('src/Game/System/Navigation'),
+        require('src/Game/System/Player'),
         require('src/Game/System/GameMap')
       );
     }
@@ -44,15 +50,18 @@
     if (typeof(root.States.GameState) === 'undefined'){
       root.States.Game = factory(
 	root.FSM,
+        root.R.ECS.World,
         root.R.ECS.Entity,
 	root.R.Graphics.Terminal,
 	root.R.Graphics.Cursor,
 	root.R.Input.Keyboard,
+        root.System.Navigation,
+        root.System.Player,
         root.System.GameMap
       );
     }
   }
-})(this, function (FSM, Entity, Terminal, Cursor, Keyboard, GameMap) {
+})(this, function (FSM, World, Entity, Terminal, Cursor, Keyboard, Navigation, Player, GameMap) {
 
   function GameState(terminal, keyboard, fsm, setActive){
     if (!(terminal instanceof Terminal)){
@@ -62,28 +71,23 @@
       throw new TypeError("Argument <keyboard> expected to be a Keyboard instance.");
     }
 
-    var map = null;
     var player = null;
     var focus = false;
     var cursor = null;
     var updateMap = true;
 
+    var world = new World();
+    var map = new GameMap(world);
+    world.registerSystem(new Navigation(world));
+    world.registerSystem(new Player(world));
+    world.registerSystem(map, 0);
+
     Object.defineProperties(this, {
       "map":{
         enumerate:true,
-        get:function(){return map;},
-        set:function(m){
-          if (m === null || m instanceof GameMap){
-            map = m;
-            if (player !== null){
-              map.setTarget(player);
-            }
-          } else {
-            throw new TypeError("Expecting a GameMap instance objector null.");
-          }
-        }
+        get:function(){return map;}
       },
-
+      
       "player":{
         enumerate:true,
         get:function(){return player;},
@@ -93,13 +97,9 @@
           }
           if (typeof(p.visual) !== 'undefined' && typeof(p.position) !== 'undefined'){
             if (player !== p){
-              if (player !== null && map !== null){
-                map.removeEntity(player);
-              }
+              // TODO: Figure out how to "swap" or "remove" player entity;
               player = p;
-              if (map !== null){
-                map.setTarget(player);
-              }
+              world.emit("add-entity", p);
             }
           }
         }
@@ -120,17 +120,19 @@
           dc = 1;
         }
 
-        var tile = null;
-        if (map !== null){
-          tile = map.tilemap.getTile(player.position.c + dc, player.position.r + dr);
-          console.log(tile.movability);
-        }
+        //var tile = null;
+        //if (map !== null){
+        //  tile = map.tilemap.getTile(player.position.c + dc, player.position.r + dr);
+        //  console.log(tile.movability);
+        //}
 
-        if (tile !== null &&  tile.movability >= 1.0 && (dc !== 0 || dr !== 0)){
-          player.position.c += dc;
-          player.position.r += dr;
-          updateMap = true;
-        }
+        //if (tile !== null &&  tile.movability >= 1.0 && (dc !== 0 || dr !== 0)){
+        //  player.position.c += dc;
+        //  player.position.r += dr;
+        //  updateMap = true;
+        //}
+        world.emit("player-move", dc, dr);
+        updateMap = true;
       }
     };
 

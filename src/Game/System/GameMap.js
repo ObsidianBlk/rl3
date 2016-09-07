@@ -8,6 +8,7 @@
       'src/R/System/Emitter',
       'src/R/Graphics/Cursor',
       'src/R/Map/Tilemap',
+      'src/R/ECS/World',
       'src/R/ECS/Entity',
       'src/R/ECS/Assembler'
     ], factory);
@@ -20,6 +21,7 @@
         require('src/R/System/Emitter'),
 	require('src/R/Graphics/Cursor'),
         require('src/R/Map/Tilemap'),
+        require('src/R/ECS/World'),
         require('src/R/ECS/Entity'),
         require('src/R/ECS/Assembler')
       );
@@ -39,25 +41,29 @@
         root.R.System.Emitter,
 	root.R.Graphics.Cursor,
         root.R.Map.Tilemap,
+        root.R.ECS.World,
         root.R.ECS.Entity,
         root.R.ECS.Assembler
       );
     }
   }
-})(this, function (Emitter, Cursor, Tilemap, Entity, Assembler) {
+})(this, function (Emitter, Cursor, Tilemap, World, Entity, Assembler) {
 
 
-  function GameMap(){
+  function GameMap(world){
     Emitter.call(this);
 
-    var assembler = null;
-    var doordef = {opened: "", closed: ""};
+    if (!(world instanceof World)){
+      throw new TypeError("Expected World instance object.");
+    }
     
     var tmap = null;
-    var target = null;
     var entities = {};
     var eactor = [];
     var evis = [];
+
+    var camC = 0;
+    var camR = 0;
 
     Object.defineProperties(this, {
       "tilemap":{
@@ -72,74 +78,35 @@
         }
       },
 
-      "assembler":{
-        enumerate:true,
-        get:function(){return assembler;},
-        set:function(a){
-          if (!(a instanceof Assembler) && a !== null){
-            throw new TypeError("Expected Assembler instance.");
-          }
-          if (a !== assembler){
-            assembler = a;
-          }
-        }
-      },
-
       "actors":{
         enumerate:true,
         get:function(){
           return eactor.map(function(i){return i;});
         }
+      },
+
+      "cameraC":{
+        enumerate: true,
+        get:function(){return camC;},
+        set:function(c){
+          if (typeof(c) !== 'number'){
+            throw new TypeError("Expected a number value.");
+          }
+          camC = c;
+        }
+      },
+
+      "cameraR":{
+        enumerate: true,
+        get:function(){return camR;},
+        set:function(r){
+          if (typeof(r) !== 'number'){
+            throw new TypeError("Expected a number value.");
+          }
+          camR = r;
+        }
       }
     });
-
-    this.addEntity = function(e){
-      if (!(e instanceof Entity)){
-        throw new TypeError("Expected Entity instance object.");
-      }
-      if (!(e.id in entities)){
-        entities[e.id] = e;
-        if (typeof(e.visual) === typeof({})){
-          evis.push(e);
-        }
-        if (typeof(e.actor) === typeof({})){
-          eactor.push(e);
-        }
-      }
-    };
-
-    this.removeEntity = function(e){
-      if (e instanceof Entity){
-        if (e.id in entities){
-          delete entities[e.id];
-          evis = evis.filter(function(i){
-            return !(i.id === e.id);
-          });
-          eactor = eactor.filter(function(i){
-            return !(i.id === e.id);
-          });
-        }
-      }
-    };
-
-    this.setTarget = function(e){
-      if (!(e instanceof Entity)){
-        throw new TypeError("Expected Entity instance object.");
-      }
-      if (typeof(e.actor) === typeof({})){
-        if (!(e.id in entities)){
-          this.addEntity(e);
-        }
-        if (target !== e){
-          target = e;
-        }
-      }
-    };
-
-    this.defineDoors = function(opened, closed){
-      doordef.opened = opened;
-      doordef.closed = closed;
-    };
 
     this.draw = function(cursor){
       if (cursor instanceof Cursor){
@@ -149,14 +116,10 @@
         
         var offsetC = 0;
         var offsetR = 0;
-        if (target !== null){
-          offsetC = target.position.c - hcurC;
-          offsetR = target.position.r - hcurR;
-        }
 
         var vislist = evis.filter(function(e){
-          if (e.position.c >= target.position.c - hcurC && e.position.c <= target.position.c + hcurC){
-            if (e.position.r >= target.position.r -hcurR && e.position.r <= target.position.r + hcurR){
+          if (e.position.c >= camC - hcurC && e.position.c <= camC + hcurC){
+            if (e.position.r >= camR -hcurR && e.position.r <= camR + hcurR){
               return true;
             }
           }
@@ -197,39 +160,43 @@
             }
           }
         }
-        /*Object.keys(mapinfo).forEach(function(key){
-          var tile = mapinfo[key].tile;
-	  var gindex = tile.primeglyph;
-          var opts = {};
-          if (tile.foreground !== null){
-            opts.foreground = tile.foreground;
-          }
-          if (tile.background !== null){
-            opts.background = tile.background;
-          }
-	  var coords = mapinfo[key].coord;
-          var coordCount = coords.length/2;
-          for (var i=0; i < coordCount; i++){
-            cursor.c = coords[i*2] - offsetC;
-            cursor.r = (coords[(i*2)+1] -offsetR)+ 4; // The +4 is an explicit shift down.
-            var v = vislist.filter(function(e){
-              if (e.position.c === coords[i*2] && e.position.r === coords[(i*2) + 1]){
-                return true;
-              }
-              return false;
-            });
-            if (v.length > 0){
-              cursor.set(v[0].visual.primeglyph, Cursor.WRAP_TYPE_CHARACTER, {
-                foreground: v[0].visual.foreground,
-                background: v[0].visual.background
-              });
-            } else {
-              cursor.set(gindex, Cursor.WRAP_TYPE_CHARACTER, opts);
-            }
-          }
-        });*/
       }
     };
+
+
+    function RemoveEntity(e){
+      if (e instanceof Entity){
+        if (e.id in entities){
+          delete entities[e.id];
+          evis = evis.filter(function(i){
+            return !(i.id === e.id);
+          });
+          eactor = eactor.filter(function(i){
+            return !(i.id === e.id);
+          });
+        }
+      }
+    }
+
+    // ----------------
+    // Registering to the world!
+    world.registerSystem(this);
+    world.on("add-entity", function(e){
+      if (!(e.id in entities)){
+        entities[e.id] = e;
+        if (typeof(e.visual) === typeof({})){
+          evis.push(e);
+        }
+        if (typeof(e.actor) === typeof({})){
+          eactor.push(e);
+        }
+      }
+    });
+
+    world.on("camera-position", function(c, r){
+      camC = c;
+      camR = r;
+    });
   }
   GameMap.prototype.__proto__ = Emitter.prototype;
   GameMap.prototype.constructor = GameMap;
