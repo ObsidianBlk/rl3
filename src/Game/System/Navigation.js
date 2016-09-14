@@ -7,7 +7,8 @@
     define([
       'src/R/System/Emitter',
       'src/R/ECS/World',
-      'src/R/ECS/Entity'
+      'src/R/ECS/Entity',
+      'src/Game/System/GameMap'
     ], factory);
   } else if (typeof exports === 'object') {
     /* -------------------------------------------------
@@ -17,7 +18,8 @@
       module.exports = factory(
         require('src/R/System/Emitter'),
         require('src/R/ECS/World'),
-        require('src/R/ECS/Entity')
+        require('src/R/ECS/Entity'),
+        require('src/Game/System/GameMap')
       );
     }
   } else {
@@ -27,20 +29,26 @@
     if (typeof(root.R) === 'undefined'){
       throw new Error("The R library has not been loaded.");
     }
+
     if (typeof(root.System) === 'undefined'){
-      root.System = {};
+      throw new Error("The System library is empty. System component required.");
     }
-    if (typeof(root.System.GameMap) === 'undefined'){
-      root.System.GameMap = factory(
+    
+    if (typeof(root.System.Navigation) === 'undefined'){
+      root.System.Navigation = factory(
         root.R.System.Emitter,
         root.R.ECS.World,
-        root.R.ECS.Entity
+        root.R.ECS.Entity,
+        root.System.GameMap
       );
     }
   }
-})(this, function (Emitter, World, Entity) {
+})(this, function (Emitter, World, Entity, GameMap) {
 
-  function Navigation(world){
+  function Navigation(world, map){
+    if (!(map instanceof GameMap)){
+      throw new TypeError("Expected GameMap instance object.");
+    }
     var Entities = {};
     
     function OnNewEntity(e){
@@ -54,18 +62,21 @@
         var nc = e.position.c + dc;
         var nr = e.position.r + dr;
 
-        // TODO: Validate position on map.
-
-        e.position.c = nc;
-        e.position.r = nr;
+        var moveability = map.getMoveability(nc, nr);
+        if (moveability !== null && moveability > 0){
+          e.position.c = nc;
+          e.position.r = nr;
+        }
       }
     }
 
     function OnPosition(e, c, r){
       if (e.id in Entities){
-        // TODO: Validate (c, r) position on map
-        e.position.c = c;
-        e.position.r = r;
+        var moveability = map.getMoveability(c, r);
+        if (moveability !== null && moveability > 0){
+          e.position.c = c;
+          e.position.r = r;
+        }
       }
     }
 

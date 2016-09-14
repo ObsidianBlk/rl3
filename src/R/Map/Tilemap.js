@@ -181,106 +181,6 @@
     };
 
 
-    this.getRegionTileInfo = function(x, y, w, h, onlySeen){
-      if (map === null){
-        throw new Error("Map not initialized.");
-      }
-
-      var tileinfo = [];
-      onlySeen = (onlySeen === true) ? true : false;
-      if (x < 0){
-	w += x;
-	x = 0;
-      } else if (x >= width){
-	w = 0;
-      }
-
-      if (y < 0){
-	h += y;
-	y = 0;
-      } else if (y >= height){
-	h = 0;
-      }
-
-      if (w > 0 && h > 0){
-        var ex = (x+w > width) ? width - x : x+w;
-        var ey = (y+h > height) ? height - y : y+h;
-
-        for (var j=y; j < ey; j++){
-	  var index = j*width;
-          tileinfo.push([]);
-	  for (var i=x; i < ex; i++){
-            var row = tileinfo[tileinfo.length-1];
-            
-            if (map[index+i].index >= 0 && (onlySeen === false || (onlySeen === true && map[index+i].seen === true))){
-              row.push({
-                c: i,
-                r: j,
-                tile:tile[map[index+i].index]
-              });
-	    } else {
-              row.push({
-                c: i,
-                r: j,
-                tile:null
-              });
-            }
-          }
-        }
-      }
-      return tileinfo;
-    };
-    
-    this.getRegionTileInfo2 = function(x, y, w, h, onlySeen){
-      if (map === null){
-	throw new Error("Map not initialized.");
-      }
-
-      var region_tiles = {};
-      onlySeen = (onlySeen === true) ? true : false;
-      if (x < 0){
-	w += x;
-	x = 0;
-      } else if (x >= width){
-	w = 0;
-      }
-
-      if (y < 0){
-	h += y;
-	y = 0;
-      } else if (y >= height){
-	h = 0;
-      }
-
-      if (w <= 0 || h <= 0){ // If the recalculated region size is zero or less, then there's nothing to get.
-	return {};
-      }
-
-      var ex = (x+w > width) ? width - x : x+w;
-      var ey = (y+h > height) ? height - y : y+h;
-
-      for (var j=y; j < ey; j++){
-	var index = j*width;
-	for (var i=x; i < ex; i++){
-	  if (map[index+i].index < 0){continue;} // This map space has no defined tile. Skip
-	  if (onlySeen === false || (onlySeen === true && map[index+i].seen === true)){
-	    var tindex = map[index+i].index;
-	    var tid = tile[tindex].id;
-	    if (tid in region_tiles){
-	      region_tiles[tid].coord.push(i, j);
-	    } else {
-	      region_tiles[tid] = {
-		tile: tile[tindex],
-		coord: [i, j]
-	      };
-	    }
-	  }
-	}
-      }
-      
-      return region_tiles;
-    };
-
     this.markTileSeen = function(x, y, showTile){
       if (map === null){
 	throw new Error("Map not initialized.");
@@ -348,6 +248,60 @@
         }
       }
       return this;
+    };
+
+    
+    this.createCorridor = function(x, y, length, dir, floortile, walltile){
+      if (map === null){
+	throw new Error("Map not initialized.");
+      }
+      if (x < 0 || y < 0 || x >= width || y >= height){
+	throw new RangeError("Region out of bounds.");
+      }
+
+      if (floortile instanceof Tileset.Tile){
+        floortile = this.useTile(floortile);
+      }
+      if (walltile instanceof Tileset.Tile){
+        walltile = this.useTile(walltile);
+      }
+
+      if (typeof(floortile) !== 'number' || typeof(walltile) !== 'number'){
+        throw new TypeError("Tile expected to be a Tileset.Tile instance or an integer.");
+      }
+
+      if (floortile >= 0 && walltile >= 0 && floortile < tile.length && walltile < tile.length){
+        var index  = 0;
+        if (dir === 0){ // Horizontal
+          index  = width * y;
+          if (x+length >= width){
+            throw new RangeError("Region out of bounds.");
+          }
+          for (var i=x; i < x+length; i++){
+            if(y > 0){
+              map[(width*(y-1))+i].index = walltile;
+            }
+            map[index + i].index = floortile;
+            if (y < height){
+              map[(width*(y+1))+i].index = walltile;
+            }
+          }
+        } else if (dir === 1){ // Verticle
+          if (y+length >= height){
+            throw new RangeError("Region out of bounds.");
+          }
+          for (var j=y; j < y+length; y++){
+            index = (width*j) + x;
+            if(x - 1 >= 0){
+              map[index - 1].index = walltile;
+            }
+            map[index].index = floortile;
+            if (index+1 < width*height){
+              map[index+1].index = walltile;
+            }
+          }
+        }
+      }
     };
   }
   Tilemap.prototype.__proto__ = Emitter.prototype;

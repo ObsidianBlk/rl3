@@ -108,14 +108,22 @@
       }
     });
 
+    this.getMoveability = function(c, r){
+      var tile = tmap.getTile(c, r);
+      if (tile !== null){
+        return tile.moveability;
+      }
+      return null;
+    };
+
     this.draw = function(cursor){
       if (cursor instanceof Cursor){
 
         var hcurC = Math.floor(cursor.columns*0.5);
         var hcurR = Math.floor(cursor.rows*0.5);
         
-        var offsetC = 0;
-        var offsetR = 0;
+        var offsetC = camC - hcurC;
+        var offsetR = camR - hcurR;
 
         var vislist = evis.filter(function(e){
           if (e.position.c >= camC - hcurC && e.position.c <= camC + hcurC){
@@ -141,25 +149,42 @@
               if (tile.background !== null){
                 opts.background = tile.background;
               }
+              /*
+                TODO
+                This needs to be rewritten. Why filter through the already filtered vlist for every cell. This is bullsh*t.
+               */
               var v = vislist.filter(function(e){
                 if (e.position.c === offsetC+c && e.position.r === offsetR+r){
                   return true;
                 }
                 return false;
               });
-              if (v.length > 0){
+              if (v.length > 0){  
                 cursor.set(v[0].visual.primeglyph, Cursor.WRAP_TYPE_CHARACTER, {
-                  foreground: v[0].visual.foreground,
+                  foreground: v[0].visual.tint,
                   background: v[0].visual.background
                 });
               } else {
                 cursor.set(gindex, Cursor.WRAP_TYPE_CHARACTER, opts);
               }
+              /*
+                ---------------------------------------------
+               */
+              //cursor.set(gindex, Cursor.WRAP_TYPE_CHARACTER, opts);
             } else {
               cursor.del();
             }
           }
         }
+
+        /*vislist.forEach(function(v){
+          cursor.c = offsetC - (hcurC - v.position.c);
+          cursor.r = offsetR - (hcurR - v.position.r);
+          cursor.set(v.visual.primeglyph, Cursor.WRAP_TYPE_CHARACTER, {
+            foreground: v.visual.tint,
+            background: v.visual.background
+          });
+        });*/
       }
     };
 

@@ -78,7 +78,7 @@
 
     var world = new World();
     var map = new GameMap(world);
-    world.registerSystem(new Navigation(world));
+    world.registerSystem(new Navigation(world, map));
     world.registerSystem(new Player(world));
     world.registerSystem(map, 0);
 

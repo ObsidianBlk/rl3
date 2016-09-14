@@ -85,7 +85,7 @@ requirejs([
 	description: "This is a wood floor you sassy buster you.",
 	primeglyph: parseInt("F0", 16),
 	betaglyph: -1,
-	movability: 1.0,
+	moveability: 1.0,
 	visibility: 1.0,
 	foreground: "#a58740",
 	background: null
@@ -95,7 +95,7 @@ requirejs([
 	description: "This is a wooden wall... Sooo grainey",
 	primeglyph: parseInt("DB", 16),
 	betaglyph: -1,
-	movability: 0.0,
+	moveability: 0.0,
 	visibility: 1.0,
 	foreground: "#a58740",
 	background: null
@@ -106,8 +106,10 @@ requirejs([
       var windex = map.useTile(ts.get("wall"));
       map.initialize("map", "map", 200, 200);
       map.createRoom(0, 0, 15, 15, findex, windex);
-      map.createRoom(14, 5, 10, 3, findex, windex);
+      
+      //map.createRoom(14, 5, 10, 3, findex, windex);
       map.createRoom(23, 0, 10, 30, findex, windex);
+      map.createCorridor(14, 5, 10, 0, findex, windex);
       map.createRoom(54, 5, 10, 10, findex, windex);
 
 

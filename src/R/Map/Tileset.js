@@ -50,7 +50,7 @@
         "name":"", // Very brief description of tile... Ex. "Wall" or "White Wall"
         "description":"", // A longer (2 line?) description of the tile... Ex. "It's a bloody white tile you git."
 	"tags":["string",...], // [OPTIONAL] An array of strings that can be used to identify the purpose or catagory of the tile.
-        "movability":0, // A number from 0 to 1 which determines the speed at which entities can move across the tile.
+        "moveability":0, // A number from 0 to 1 which determines the speed at which entities can move across the tile.
         "visibility":0, // A number from 0 to 1 which determines the distance an entity can "see" past this tile.
         "primeglyph":0, // A numerical index between 0 and 255 which identifies the primary glyph to use when rendering this tile.
         "betaglyph":0, // [OPTIONAL] A numerical index equal to or greater than 0 which identified the beta glyph to use when rendering this tile using extended glyph.
@@ -155,7 +155,7 @@
 	    description:"",
 	    primeglyph: 0,
 	    betaglyph: -1,
-	    movability: 0.0,
+	    moveability: 0.0,
 	    visibility: 0.0,
 	    foreground: null,
 	    background: null,
@@ -176,7 +176,7 @@
         if (info.primeglyph < 0 || info.primeglyph > 255){
           throw new RangeError();
         }
-        if (typeof(info.movability) !== 'number'){
+        if (typeof(info.moveability) !== 'number'){
           throw new TypeError();
         }
         if (typeof(info.visibility) !== 'number'){
@@ -197,8 +197,8 @@
       if (typeof(info.betaglyph) === 'number' && info.betaglyph >= -1){
 	tile.data.betaglyph = Math.floor(info.betaglyph);
       }
-      if (typeof(info.movability) === 'number'){
-	tile.data.movability = Math.min(1.0, Math.max(0.0, info.movability));
+      if (typeof(info.moveability) === 'number'){
+	tile.data.moveability = Math.min(1.0, Math.max(0.0, info.moveability));
       }
       if (typeof(info.visibility) === 'number'){
 	tile.data.visibility = Math.min(1.0, Math.max(0.0, info.visibility));
@@ -275,8 +275,8 @@
 	obj.betaglyph = Math.floor(info.betaglyph);
 	changed.push("betaglyph");
       }
-      if (typeof(info.movability) === 'number'){
-	obj.movability = Math.min(1.0, Math.max(0.0, info.movability));
+      if (typeof(info.moveability) === 'number'){
+	obj.moveability = Math.min(1.0, Math.max(0.0, info.movability));
 	changed.push("movability");
       }
       if (typeof(info.visibility) === 'number'){
@@ -343,15 +343,15 @@
 	  this.emit("changed", "description");
 	}
       },
-      "movability":{
-	get:function(){return obj.movability;},
+      "moveability":{
+	get:function(){return obj.moveability;},
 	set:function(m){
 	  if (obj.id === null){throw new Error("Tile Handler Invalid");}
 	  if (typeof(m) !== 'number'){
 	    throw new TypeError("Expecting Number Type.");
 	  }
-	  obj.movability = Math.min(1.0, Math.max(0.0, m));
-	  this.emit("changed", "movability");
+	  obj.moveability = Math.min(1.0, Math.max(0.0, m));
+	  this.emit("changed", "moveability");
 	}
       },
       "visibility":{
