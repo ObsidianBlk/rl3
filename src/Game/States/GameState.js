@@ -12,7 +12,8 @@
       'src/R/Input/Keyboard',
       'src/Game/System/Navigation',
       'src/Game/System/Player',
-      'src/Game/System/GameMap'
+      'src/Game/System/GameMap',
+      'src/Game/System/Doors'
     ], factory);
   } else if (typeof exports === 'object') {
     /* -------------------------------------------------
@@ -28,7 +29,8 @@
 	require('src/R/Input/Keyboard'),
         require('src/Game/System/Navigation'),
         require('src/Game/System/Player'),
-        require('src/Game/System/GameMap')
+        require('src/Game/System/GameMap'),
+        require('src/Game/System/Doors')
       );
     }
   } else {
@@ -57,11 +59,12 @@
 	root.R.Input.Keyboard,
         root.System.Navigation,
         root.System.Player,
-        root.System.GameMap
+        root.System.GameMap,
+        root.System.Doors
       );
     }
   }
-})(this, function (FSM, World, Entity, Terminal, Cursor, Keyboard, Navigation, Player, GameMap) {
+})(this, function (FSM, World, Entity, Terminal, Cursor, Keyboard, Navigation, Player, GameMap, Doors) {
 
   function GameState(terminal, keyboard, fsm, setActive){
     if (!(terminal instanceof Terminal)){
@@ -80,12 +83,18 @@
     var map = new GameMap(world);
     world.registerSystem(new Navigation(world, map));
     world.registerSystem(new Player(world));
+    //world.registerSystem(new Doors(world, asm));
     world.registerSystem(map, 0);
 
     Object.defineProperties(this, {
       "map":{
         enumerate:true,
         get:function(){return map;}
+      },
+
+      "world":{
+        enumerate:true,
+        get:function(){return world;}
       },
       
       "player":{
@@ -120,17 +129,6 @@
           dc = 1;
         }
 
-        //var tile = null;
-        //if (map !== null){
-        //  tile = map.tilemap.getTile(player.position.c + dc, player.position.r + dr);
-        //  console.log(tile.movability);
-        //}
-
-        //if (tile !== null &&  tile.movability >= 1.0 && (dc !== 0 || dr !== 0)){
-        //  player.position.c += dc;
-        //  player.position.r += dr;
-        //  updateMap = true;
-        //}
         world.emit("player-move", dc, dr);
         updateMap = true;
       }

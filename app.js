@@ -139,15 +139,20 @@ requirejs([
         {name: "visual", idata:{primeglyph: 8, tint: "#a58740"}},
         {name: "position"},
         {name: "physical", idata:{movability: 1.0, visibility: 1.0}},
-        {name: "door"}
+        {name: "door", idata:{nextState:"door_closed"}}
       ]);
 
       assembler.defineAssemblage("door", "door_closed", [
         {name: "visual", idata:{primeglyph: 10, tint: "#a58740"}},
         {name: "position"},
         {name: "physical"},
-        {name: "door"}
+        {name: "door", idata:{nextState:"door_opened"}}
       ]);
+
+      var door = assembler.createEntity("door", "door_closed");
+      door.position.c = 14;
+      door.position.r = 5;
+      
 
       // --------------------------------------------------------------------
 
@@ -159,6 +164,7 @@ requirejs([
       var gstate = fsm.get("GameState");
       gstate.map.tilemap = map;
       gstate.player = player;
+      gstate.world.addEntity(door);
       //gstate.map.setTarget(player);
       
 

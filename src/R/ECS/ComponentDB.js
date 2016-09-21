@@ -119,6 +119,23 @@
 	delete e[name];
       }
     };
+
+    this.entityHasComponents = function(e, comps){
+      // comps = [{name:"", type:""}, ...]
+      
+      if (!(e instanceof Entity)){
+        throw new TypeError("Invalid Entity Object.");
+      }
+      if (comps instanceof Array){
+        for (var i=0; i < comps.length; i++){
+          if (typeof(e[comps[i].name]) !== comps[i].type){
+            return false;
+          }
+        }
+        return true;
+      }
+      return false;
+    };
   }
 
   return ComponentDB;

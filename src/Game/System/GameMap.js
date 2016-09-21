@@ -59,7 +59,7 @@
     
     var tmap = null;
     var entities = {};
-    var eactor = [];
+    var eactor = []; // TODO: Refactor eactor to be ephysical.
     var evis = [];
 
     var camC = 0;
@@ -111,9 +111,25 @@
     this.getMoveability = function(c, r){
       var tile = tmap.getTile(c, r);
       if (tile !== null){
-        return tile.moveability;
+        var mv = tile.moveability;
+        if (tile.moveability > 0){
+          var ents = eactor.forEach(function(e){
+            if (e.position.c === c && e.position.r === r && e.physical.moveability < 1){
+              if (mv > e.physical.moveability){
+                mv = e.physical.moveability;
+              }
+            }
+          });
+        }
+        return mv;
       }
       return null;
+    };
+
+    this.getEntities = function(c, r){
+      return evis.filter(function(e){
+        return (e.position.c === c && e.position.r === r);
+      });
     };
 
     this.draw = function(cursor){
@@ -212,11 +228,13 @@
         if (typeof(e.visual) === typeof({})){
           evis.push(e);
         }
-        if (typeof(e.actor) === typeof({})){
+        if (typeof(e.physical) === typeof({})){
           eactor.push(e);
         }
       }
     });
+
+    world.on("remove-entity", RemoveEntity);
 
     world.on("camera-position", function(c, r){
       camC = c;

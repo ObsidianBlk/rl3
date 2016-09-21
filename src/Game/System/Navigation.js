@@ -63,7 +63,14 @@
         var nr = e.position.r + dr;
 
         var moveability = map.getMoveability(nc, nr);
-        if (moveability !== null && moveability > 0){
+        if (moveability < 1){
+          var ents = map.getEntities(nc, nr);
+          for (var i=0; i < ents.length; i++){
+            if (ents[i].physical.moveability <= 0){
+              world.emit("interact", e, ents[i]);
+            }
+          }
+        } else if (moveability !== null && moveability > 0){
           e.position.c = nc;
           e.position.r = nr;
         }

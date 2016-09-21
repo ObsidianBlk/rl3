@@ -73,9 +73,17 @@
       });
     };
 
+    this.addEntity = function(ent){
+      this.emit("add-entity", ent);
+    };
 
     this.registerEntity = function(ent){
+      // TODO: Deprecate me, moron!
       this.emit("add-entity", ent);
+    };
+
+    this.removeEntity = function(ent){
+      this.emit("remove-entity", ent);
     };
 
     this.update = function(dt){
