@@ -138,7 +138,7 @@ requirejs([
       assembler.defineAssemblage("door", "door_opened", [
         {name: "visual", idata:{primeglyph: 8, tint: "#a58740"}},
         {name: "position"},
-        {name: "physical", idata:{movability: 1.0, visibility: 1.0}},
+        {name: "physical", idata:{moveability: 1.0, visibility: 1.0}},
         {name: "door", idata:{nextState:"door_closed"}}
       ]);
 
@@ -158,7 +158,7 @@ requirejs([
 
       var fsm = new FSM();
       new MainMenuState(term, kinput, fsm, true);
-      new GameState(term, kinput, fsm);
+      new GameState(term, kinput, fsm, assembler);
       new GEPEditorState(term, kinput, fsm);
 
       var gstate = fsm.get("GameState");

@@ -73,8 +73,8 @@
         {name:"physical", type:tobj},
         {name:"door", type:tobj}
       ])){
-        var nent = assembler.createEntity("door", actee.door.naxtState);
-        world.dropEntity(actee);
+        var nent = assembler.createEntity("door", actee.door.nextState);
+        world.removeEntity(actee);
         nent.position.c = actee.position.c;
         nent.position.r = actee.position.r;
         world.addEntity(nent);
@@ -87,5 +87,7 @@
   }
   Doors.prototype.__proto__ = Emitter.prototype;
   Doors.prototype.constructor = Doors;
-  
+
+
+  return Doors;
 });

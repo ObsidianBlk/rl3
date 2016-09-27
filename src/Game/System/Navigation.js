@@ -64,12 +64,18 @@
 
         var moveability = map.getMoveability(nc, nr);
         if (moveability < 1){
-          var ents = map.getEntities(nc, nr);
-          for (var i=0; i < ents.length; i++){
-            if (ents[i].physical.moveability <= 0){
-              world.emit("interact", e, ents[i]);
-            }
+          var ents = map.getEntities(nc, nr).sort(function(a, b){
+            return a.physical.moveability - b.physical.moveability;
+          });
+          if (ents.length > 0){
+            world.emit("interact", e, ents[0]);
           }
+          
+          //r (var i=0; i < ents.length; i++){
+          //if (ents[i].physical.moveability <= 0){
+          //  world.emit("interact", e, ents[i]);
+          //}
+          //
         } else if (moveability !== null && moveability > 0){
           e.position.c = nc;
           e.position.r = nr;

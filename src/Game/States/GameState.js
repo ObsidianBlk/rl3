@@ -66,7 +66,7 @@
   }
 })(this, function (FSM, World, Entity, Terminal, Cursor, Keyboard, Navigation, Player, GameMap, Doors) {
 
-  function GameState(terminal, keyboard, fsm, setActive){
+  function GameState(terminal, keyboard, fsm, assembler, setActive){
     if (!(terminal instanceof Terminal)){
       throw new TypeError("Argument <terminal> expected to be a Terminal instance.");
     }
@@ -83,7 +83,7 @@
     var map = new GameMap(world);
     world.registerSystem(new Navigation(world, map));
     world.registerSystem(new Player(world));
-    //world.registerSystem(new Doors(world, asm));
+    world.registerSystem(new Doors(world, assembler));
     world.registerSystem(map, 0);
 
     Object.defineProperties(this, {
