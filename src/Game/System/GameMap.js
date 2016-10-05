@@ -8,6 +8,7 @@
       'src/R/System/Emitter',
       'src/R/Graphics/Cursor',
       'src/R/Map/Tilemap',
+      'src/R/Map/Shadowcaster',
       'src/R/ECS/World',
       'src/R/ECS/Entity',
       'src/R/ECS/Assembler'
@@ -21,6 +22,7 @@
         require('src/R/System/Emitter'),
 	require('src/R/Graphics/Cursor'),
         require('src/R/Map/Tilemap'),
+        require('src/R/Map/Shadowcaster'),
         require('src/R/ECS/World'),
         require('src/R/ECS/Entity'),
         require('src/R/ECS/Assembler')
@@ -41,13 +43,14 @@
         root.R.System.Emitter,
 	root.R.Graphics.Cursor,
         root.R.Map.Tilemap,
+        root.R.Map.Shadowcaster,
         root.R.ECS.World,
         root.R.ECS.Entity,
         root.R.ECS.Assembler
       );
     }
   }
-})(this, function (Emitter, Cursor, Tilemap, World, Entity, Assembler) {
+})(this, function (Emitter, Cursor, Tilemap, Shadowcaster, World, Entity, Assembler) {
 
 
   function GameMap(world){
@@ -140,6 +143,9 @@
         
         var offsetC = camC - hcurC;
         var offsetR = camR - hcurR;
+
+        //var fov = new Shadowcaster(tmap);
+        //fov.generate(camC, camR, 5);
 
         var vislist = evis.filter(function(e){
           if (e.position.c >= camC - hcurC && e.position.c <= camC + hcurC){
