@@ -9,12 +9,6 @@
        CommonJS style connection.
        ------------------------------------------------- */
     if(typeof module === "object" && module.exports){
-      /*
-	!!!! WARNING !!!!
-	This object uses the browser context class Image() as well as the document object for a lot of it's work. As such,
-	this object may not be importable using node's require() method... unless you know how to make those items global in this context.
-	Have fun!
-       */
       module.exports = factory(
 	require('src/R/Map/Tilemap')
       );
@@ -76,10 +70,10 @@
   function shadowline(){
     var shadows = [];
     this.add = function(s){
-      if (this.inShadows(s) === true){return;}
+      if (this.inShadow(s) === true){return;}
       var index = 0;
       for (index=0; index < shadows.length; index++){
-        if (this._shadows[index].start >= s.start){break;} // Found our insertion point.
+        if (shadows[index].start >= s.start){break;} // Found our insertion point.
       }
       if (index > 0 && shadows[index-1].overlaps(s)){
         s = s.merged(shadows[index-1]);
@@ -111,6 +105,7 @@
     var mapsize = 0;
     var origin_c = 0;
     var origin_r = 0;
+    var radius = 0;
 
     Object.defineProperties(this, {
       "col":{
@@ -133,19 +128,40 @@
           }
           origin_r = row;
         }
+      },
+
+      "radius":{
+        enumerate: true,
+        get:function(){return radius;},
+        set:function(r){
+          if(typeof(r) !== 'number'){
+            throw new TypeError("Expected a number value");
+          }
+          if (r <= 0){
+            throw new RangeError("Radius must be greater than zero.");
+          }
+          radius = r;
+        }
       }
     });
     
-    function OctantTransform(octant, row, col){
+    function OctantTransform(octant, row, col, setToOrigin){
+      var or = radius;
+      var oc = radius;
+      if (setToOrigin === true){
+        or = origin_r;
+        oc = origin_c;
+      }
+      
       switch (octant) {
-      case 0: return {col:col, row:-row};
-      case 1: return {col:row, row:-col};
-      case 2: return {col:row,  row:col};
-      case 3: return {col:col,  row:row};
-      case 4: return {col:-col,  row:row};
-      case 5: return {col:-row,  row:col};
-      case 6: return {col:-row, row:-col};
-      case 7: return {col:-col, row:-row};
+      case 0: return {col:oc + col, row:or - row};
+      case 1: return {col:oc + row, row:or - col};
+      case 2: return {col:oc + row,  row:or + col};
+      case 3: return {col:oc + col,  row:or + row};
+      case 4: return {col:oc - col,  row:or + row};
+      case 5: return {col:oc - row,  row:or + col};
+      case 6: return {col:oc - row, row:or - col};
+      case 7: return {col:oc - col, row:or - row};
       }
       return null;
     }
@@ -160,24 +176,29 @@
       var sl = new shadowline();
       for (var row=1; row < radius+1; row++){
         for (var col = 0; col <= row; col++){
-          var pos = OctantTransform(octant, row, col);
+          var mpos = OctantTransform(octant, row, col, true);
+          var spos = OctantTransform(octant, row, col);
           var tproj = ProjectTile(col, row);
 
-          var fcol = pos.col + radius;
-          var frow = pos.row + radius;
-          var findex = (frow*mapsize)+fcol;
-          fovmap[findex] = sl.inShadow(tproj) ? 0 : 1;
-          
-          var t = tmap.getTile(pos.col + c, pos.row + r);
-          if (t !== null && t.visibility < 1){
-            sl.add(tproj);
+          var findex = (spos.row*mapsize)+spos.col;
+
+          var t = tmap.getTile(mpos.col, mpos.row);
+          if (t !== null){
+            if (sl.inShadow(tproj) === false){
+              fovmap[findex] = 1;
+            }
+            if (t.visibility < 1){
+              sl.add(tproj);
+            }
+          } else {
+            fovmap[findex] = 0;
           }
         }
       }
     }
 
 
-    this.generate = function(radius){
+    this.generate = function(){
       var size = (radius*2)+1;
       mapsize = size*size;
       fovmap = [];
@@ -197,13 +218,20 @@
       fovmap.forEach(function(v, i){
         var col = ((i%mapsize) - radius) + origin_c;
         var row = (Math.floor(i/mapsize) - radius) + origin_r;
-        tmap.markTileSeen(col, row, true);
+        if (v === 1){
+          tmap.markTileSeen(col, row, true);
+        }
       });
     };
 
     this.isVisible = function(c, r){
       if (fovmap.length > 0){
-        // TODO: Can I see the tile at c, r.
+        var col = (c -  origin_c) + radius;
+        var row = (r - origin_r) + radius;
+        var findex = (row*mapsize)+col;
+        if (findex >= 0 && findex < fovmap.length){
+          return (fovmap[findex] === 1);
+        }
       }
       return false;
     };

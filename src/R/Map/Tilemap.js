@@ -185,10 +185,9 @@
       if (map === null){
 	throw new Error("Map not initialized.");
       }
-      if (x < 0 || y < 0 || x >= width || y >= height){
-	throw new RangeError("Coordinates out of range.");
+      if (x >= 0 && y >= 0 && x < width && y < height){
+	map[(width*y)+x].seen = (showTile === true) ? true : false;
       }
-      map[(width*y)+x].seen = (showTile === true) ? true : false;
       return this;
     };
 
@@ -203,12 +202,21 @@
       for (var i=0; i < pcount; i++){
         var x = poslist[(i*2)];
         var y = poslist[(i*2)+1];
-        if (x < 0 || y < 0 || x >= width || y >= height){
-	  throw new RangeError("Coordinates out of range for position index " + (i*2) + ".");
+        if (x >= 0 && y >= 0 && x < width && y < height){
+	  map[(y*width)+x].seen = (showTile === false) ? false : true;
         }
-        map[(y*width)+x].seen = (showTile === false) ? false : true;
       }
       return this;
+    };
+
+    this.isSeen = function(x, y){
+      if (map === null){
+	throw new Error("Map not initialized.");
+      }
+      if (x >= 0 && y >= 0 && x < width && y < height){
+        return map[(y*width)+x].seen;
+      }
+      return false;
     };
 
     this.createRoom = function(x, y, w, h, floortile, walltile, onlyOverwriteEmpty){

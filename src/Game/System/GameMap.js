@@ -144,8 +144,11 @@
         var offsetC = camC - hcurC;
         var offsetR = camR - hcurR;
 
-        //var fov = new Shadowcaster(tmap);
-        //fov.generate(camC, camR, 5);
+        var fov = new Shadowcaster(tmap);
+        fov.col = camC;
+        fov.row = camR;
+        fov.radius = 5;
+        fov.generate();
 
         var vislist = evis.filter(function(e){
           if (e.position.c >= camC - hcurC && e.position.c <= camC + hcurC){
@@ -162,19 +165,29 @@
           for (var c=0; c < cursor.columns; c++){
             cursor.c = c;
             var tile = tmap.getTile(offsetC + c, offsetR + r);
-            if (tile !== null){
+            if (tile !== null && tmap.isSeen(offsetC + c, offsetR + r) === true){
               var gindex = tile.primeglyph;
               var opts = {};
+              var visible = fov.isVisible(offsetC + c, offsetR + r);
               if (tile.foreground !== null){
-                opts.foreground = tile.foreground;
+                if (visible === true){
+                  opts.foreground = tile.foreground;
+                } else {
+                  opts.foreground = tile.foreground.scaled(0.5);
+                }
               }
               if (tile.background !== null){
-                opts.background = tile.background;
+                if (visible === true){
+                  opts.background = tile.background;
+                } else {
+                  opts.background = tile.background.scaled(0.5);
+                }
               }
+
               /*
                 TODO
                 This needs to be rewritten. Why filter through the already filtered vlist for every cell. This is bullsh*t.
-               */
+              */
               var v = vislist.filter(function(e){
                 if (e.position.c === offsetC+c && e.position.r === offsetR+r){
                   return true;
@@ -191,7 +204,7 @@
               }
               /*
                 ---------------------------------------------
-               */
+              */
               //cursor.set(gindex, Cursor.WRAP_TYPE_CHARACTER, opts);
             } else {
               cursor.del();

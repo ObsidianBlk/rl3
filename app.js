@@ -96,7 +96,7 @@ requirejs([
 	primeglyph: parseInt("DB", 16),
 	betaglyph: -1,
 	moveability: 0.0,
-	visibility: 1.0,
+	visibility: 0.0,
 	foreground: "#a58740",
 	background: null
       });
