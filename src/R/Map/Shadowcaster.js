@@ -53,7 +53,7 @@
     });
 
     this.contains = function(other){
-      return start >= other.start && end >= other.end;
+      return start <= other.start && end >= other.end;
     };
 
     this.overlaps = function(other){
@@ -102,7 +102,6 @@
 
   function Shadowcaster(tmap){
     var fovmap = [];
-    var mapsize = 0;
     var origin_c = 0;
     var origin_r = 0;
     var radius = 0;
@@ -172,7 +171,7 @@
       return new shadow(topleft, bottomright);
     }
 
-    function CalculateOctant(octant, c, r, radius){
+    function CalculateOctant(octant){
       var sl = new shadowline();
       for (var row=1; row < radius+1; row++){
         for (var col = 0; col <= row; col++){
@@ -180,18 +179,17 @@
           var spos = OctantTransform(octant, row, col);
           var tproj = ProjectTile(col, row);
 
-          var findex = (spos.row*mapsize)+spos.col;
+          var findex = (spos.row*((radius*2)+1))+spos.col;
 
           var t = tmap.getTile(mpos.col, mpos.row);
           if (t !== null){
             if (sl.inShadow(tproj) === false){
               fovmap[findex] = 1;
+              //tmap.markTileSeen(mpos.col, mpos.row, true);
             }
             if (t.visibility < 1){
               sl.add(tproj);
             }
-          } else {
-            fovmap[findex] = 0;
           }
         }
       }
@@ -200,35 +198,60 @@
 
     this.generate = function(){
       var size = (radius*2)+1;
-      mapsize = size*size;
+      var mapsize = size*size;
       fovmap = [];
       for (var i=0; i < mapsize; i++){
-        fovmap[i] = 0;
+        fovmap.push(0);
       }
       
-      CalculateOctant(0, origin_c, origin_r, radius);
-      CalculateOctant(1, origin_c, origin_r, radius);
-      CalculateOctant(2, origin_c, origin_r, radius);
-      CalculateOctant(3, origin_c, origin_r, radius);
-      CalculateOctant(4, origin_c, origin_r, radius);
-      CalculateOctant(5, origin_c, origin_r, radius);
-      CalculateOctant(6, origin_c, origin_r, radius);
-      CalculateOctant(7, origin_c, origin_r, radius);
+      CalculateOctant(0);
+      CalculateOctant(1);
+      CalculateOctant(2);
+      CalculateOctant(3);
+      CalculateOctant(4);
+      CalculateOctant(5);
+      CalculateOctant(6);
+      CalculateOctant(7);
 
-      fovmap.forEach(function(v, i){
-        var col = ((i%mapsize) - radius) + origin_c;
-        var row = (Math.floor(i/mapsize) - radius) + origin_r;
+      /*fovmap.forEach(function(v, i){
         if (v === 1){
+          var col = ((i%size) - radius) + origin_c;
+          var row = (Math.floor(i/size) - radius) + origin_r;
+          tmap.markTileSeen(col, row, true);
+        }
+      });*/
+    };
+
+    this.markMapSeen = function(){
+      if (fovmap.length <=0 && radius > 0){return;}
+      var size = (radius*2)+1;
+      fovmap.forEach(function(v, i){
+        if (v === 1){
+          var col = ((i%size) - radius) + origin_c;
+          var row = (Math.floor(i/size) - radius) + origin_r;
           tmap.markTileSeen(col, row, true);
         }
       });
+    };
+
+    this.consoleOut = function(){
+      var size = (radius*2)+1;
+      for (var row = 0; row < size; row++){
+        var line = "";
+        for (var col =0; col < size; col++){
+          var index = (row*size)+col;
+          line += fovmap[index].toString();
+        }
+        console.log(line);
+        console.log(" ");
+      }
     };
 
     this.isVisible = function(c, r){
       if (fovmap.length > 0){
         var col = (c -  origin_c) + radius;
         var row = (r - origin_r) + radius;
-        var findex = (row*mapsize)+col;
+        var findex = (row*((radius*2)+1))+col;
         if (findex >= 0 && findex < fovmap.length){
           return (fovmap[findex] === 1);
         }

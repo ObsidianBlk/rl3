@@ -149,6 +149,7 @@
         fov.row = camR;
         fov.radius = 5;
         fov.generate();
+        fov.markMapSeen();
 
         var vislist = evis.filter(function(e){
           if (e.position.c >= camC - hcurC && e.position.c <= camC + hcurC){
