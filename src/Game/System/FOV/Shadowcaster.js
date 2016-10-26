@@ -3,35 +3,35 @@
     /* -------------------------------------------------
        AMD style connection.
        ------------------------------------------------- */
-    define(['src/R/Map/Tilemap'], factory);
+    define(['src/Game/System/GameMap'], factory);
   } else if (typeof exports === 'object') {
     /* -------------------------------------------------
        CommonJS style connection.
        ------------------------------------------------- */
     if(typeof module === "object" && module.exports){
       module.exports = factory(
-	require('src/R/Map/Tilemap')
+	require('src/Game/System/GameMap')
       );
     }
   } else {
     /* -------------------------------------------------
        Standard Browser style connection.
        ------------------------------------------------- */
-    if (typeof(root.R.Browser) === 'undefined'){
+    if (typeof(root.R) === 'undefined' || typeof(root.R.Browser === 'undefined')){
       throw new Error("Missing R initilization.");
     }
 
     if (root.R.Browser.exists(root, [
-      "R.Map.Tilemap"
+      "Game.System.GameMap"
     ]) === false){
       throw new Error("Missing required object");
     }
 
-    root.R.Browser.def(root, "R.Map.Shadowcaster", factory(
-      root.R.Map.Tilemap
+    root.R.Browser.def(root, "Game.System.FOV.Shadowcaster", factory(
+      root.Game.System.GameMap
     ));
   }
-})(this, function (Tilemap) {
+})(this, function (GameMap) {
 
   /* ---------------------------------------------------------------
     NOTE
@@ -100,56 +100,21 @@
   
   
 
-  function Shadowcaster(tmap){
+  function Shadowcaster(map){
+    GameMap.FOV.call(this, map);
+    var self = this;
     var fovmap = [];
-    var origin_c = 0;
-    var origin_r = 0;
-    var radius = 0;
-
-    Object.defineProperties(this, {
-      "col":{
-        enumerate: true,
-        get:function(){return origin_c;},
-        set:function(col){
-          if (typeof(col) !== 'number'){
-            throw new TypeError("Expected a number value");
-          }
-          origin_c = col;
-        }
-      },
-
-      "row":{
-        enumerate: true,
-        get:function(){return origin_r;},
-        set:function(row){
-          if(typeof(row) !== 'number'){
-            throw new TypeError("Expected a number value");
-          }
-          origin_r = row;
-        }
-      },
-
-      "radius":{
-        enumerate: true,
-        get:function(){return radius;},
-        set:function(r){
-          if(typeof(r) !== 'number'){
-            throw new TypeError("Expected a number value");
-          }
-          if (r <= 0){
-            throw new RangeError("Radius must be greater than zero.");
-          }
-          radius = r;
-        }
-      }
-    });
+    //var origin_c = 0;
+    //var origin_r = 0;
+    //var radius = 0;
+    
     
     function OctantTransform(octant, row, col, setToOrigin){
-      var or = radius;
-      var oc = radius;
+      var or = self.radius;
+      var oc = self.radius;
       if (setToOrigin === true){
-        or = origin_r;
-        oc = origin_c;
+        or = self.row;
+        oc = self.col;
       }
       
       switch (octant) {
@@ -173,6 +138,8 @@
 
     function CalculateOctant(octant){
       var sl = new shadowline();
+      var radius = self.radius;
+      //var tmap = map.tilemap;
       for (var row=1; row < radius+1; row++){
         for (var col = 0; col <= row; col++){
           var mpos = OctantTransform(octant, row, col, true);
@@ -181,13 +148,12 @@
 
           var findex = (spos.row*((radius*2)+1))+spos.col;
 
-          var t = tmap.getTile(mpos.col, mpos.row);
-          if (t !== null){
+          var vis = map.getVisibility(mpos.col, mpos.row);
+          if (vis !== null){
             if (sl.inShadow(tproj) === false){
               fovmap[findex] = 1;
-              //tmap.markTileSeen(mpos.col, mpos.row, true);
             }
-            if (t.visibility < 1){
+            if (vis < 1){
               sl.add(tproj);
             }
           }
@@ -197,7 +163,7 @@
 
 
     this.generate = function(){
-      var size = (radius*2)+1;
+      var size = (this.radius*2)+1;
       var mapsize = size*size;
       fovmap = [];
       for (var i=0; i < mapsize; i++){
@@ -212,53 +178,37 @@
       CalculateOctant(5);
       CalculateOctant(6);
       CalculateOctant(7);
-
-      /*fovmap.forEach(function(v, i){
-        if (v === 1){
-          var col = ((i%size) - radius) + origin_c;
-          var row = (Math.floor(i/size) - radius) + origin_r;
-          tmap.markTileSeen(col, row, true);
-        }
-      });*/
     };
 
     this.markMapSeen = function(){
-      if (fovmap.length <=0 && radius > 0){return;}
-      var size = (radius*2)+1;
+      if (fovmap.length <=0 && this.radius > 0){return;}
+      var size = (this.radius*2)+1;
       fovmap.forEach(function(v, i){
         if (v === 1){
-          var col = ((i%size) - radius) + origin_c;
-          var row = (Math.floor(i/size) - radius) + origin_r;
-          tmap.markTileSeen(col, row, true);
+          var col = ((i%size) - self.radius) + self.col;
+          var row = (Math.floor(i/size) - self.radius) + self.row;
+          map.tilemap.markTileSeen(col, row, true);
         }
       });
     };
 
-    this.consoleOut = function(){
-      var size = (radius*2)+1;
-      for (var row = 0; row < size; row++){
-        var line = "";
-        for (var col =0; col < size; col++){
-          var index = (row*size)+col;
-          line += fovmap[index].toString();
-        }
-        console.log(line);
-        console.log(" ");
-      }
-    };
-
     this.isVisible = function(c, r){
       if (fovmap.length > 0){
-        var col = (c -  origin_c) + radius;
-        var row = (r - origin_r) + radius;
-        var findex = (row*((radius*2)+1))+col;
-        if (findex >= 0 && findex < fovmap.length){
-          return (fovmap[findex] === 1);
+        var size = (this.radius*2)+1;
+        var col = (c -  this.col) + this.radius;
+        var row = (r - this.row) + this.radius;
+        
+        if (col >= 0 && col < size && row >= 0 && row < size){
+          var findex = (row*((this.radius*2)+1))+col;
+          if (findex >= 0 && findex < fovmap.length){
+            return (fovmap[findex] === 1);
+          }
         }
       }
       return false;
     };
   };
+  Shadowcaster.prototype.__proto__ = GameMap.FOV.prototype;
   Shadowcaster.prototype.constructor = Shadowcaster;
 
   return Shadowcaster;

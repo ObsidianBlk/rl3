@@ -13,7 +13,8 @@
       'src/Game/System/Navigation',
       'src/Game/System/Player',
       'src/Game/System/GameMap',
-      'src/Game/System/Doors'
+      'src/Game/System/Doors',
+      'src/Game/System/FOV/Shadowcaster'
     ], factory);
   } else if (typeof exports === 'object') {
     /* -------------------------------------------------
@@ -30,13 +31,15 @@
         require('src/Game/System/Navigation'),
         require('src/Game/System/Player'),
         require('src/Game/System/GameMap'),
-        require('src/Game/System/Doors')
+        require('src/Game/System/Doors'),
+        require('src/Game/System/FOV/Shadowcaster')
       );
     }
   } else {
     /* -------------------------------------------------
        Standard Browser style connection.
        ------------------------------------------------- */
+    // WTF AM I DOING HERE?!?!?!
     if (typeof(root.FSM) === 'undefined'){
       throw new Error("Missing required class 'FSM'.");
     }
@@ -60,11 +63,12 @@
         root.System.Navigation,
         root.System.Player,
         root.System.GameMap,
-        root.System.Doors
+        root.System.Doors,
+        root.Game.System.FOV.Shadowcaster
       );
     }
   }
-})(this, function (FSM, World, Entity, Terminal, Cursor, Keyboard, Navigation, Player, GameMap, Doors) {
+})(this, function (FSM, World, Entity, Terminal, Cursor, Keyboard, Navigation, Player, GameMap, Doors, Shadowcaster) {
 
   function GameState(terminal, keyboard, fsm, assembler, setActive){
     if (!(terminal instanceof Terminal)){
@@ -80,7 +84,7 @@
     var updateMap = true;
 
     var world = new World();
-    var map = new GameMap(world);
+    var map = new GameMap(world, Shadowcaster);
     world.registerSystem(new Navigation(world, map));
     world.registerSystem(new Player(world));
     world.registerSystem(new Doors(world, assembler));

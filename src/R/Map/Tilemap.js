@@ -3,7 +3,11 @@
     /* -------------------------------------------------
        AMD style connection.
        ------------------------------------------------- */
-    define(['src/R/System/Emitter', 'src/R/Graphics/Color', 'src/R/Map/Tileset'], factory);
+    define([
+      'src/R/System/Emitter',
+      'src/R/Graphics/Color',
+      'src/R/Map/Tileset'
+    ], factory);
   } else if (typeof exports === 'object') {
     /* -------------------------------------------------
        CommonJS style connection.
@@ -43,7 +47,7 @@
       root.R.Map.Tileset
     ));
   }
-})(this, function (Emitter, Color, Tileset) {
+})(this, function (Emitter, Color, Tileset, Entity) {
 
   function Tilemap(){
     Emitter.call(this);
@@ -191,6 +195,7 @@
       return this;
     };
 
+    
     this.markTilesSeen = function(poslist, showTile){
       if (map === null){
 	throw new Error("Map not initialized.");

@@ -8,7 +8,6 @@
       'src/R/System/Emitter',
       'src/R/Graphics/Cursor',
       'src/R/Map/Tilemap',
-      'src/R/Map/Shadowcaster',
       'src/R/ECS/World',
       'src/R/ECS/Entity',
       'src/R/ECS/Assembler'
@@ -22,7 +21,6 @@
         require('src/R/System/Emitter'),
 	require('src/R/Graphics/Cursor'),
         require('src/R/Map/Tilemap'),
-        require('src/R/Map/Shadowcaster'),
         require('src/R/ECS/World'),
         require('src/R/ECS/Entity'),
         require('src/R/ECS/Assembler')
@@ -43,17 +41,16 @@
         root.R.System.Emitter,
 	root.R.Graphics.Cursor,
         root.R.Map.Tilemap,
-        root.R.Map.Shadowcaster,
         root.R.ECS.World,
         root.R.ECS.Entity,
         root.R.ECS.Assembler
       );
     }
   }
-})(this, function (Emitter, Cursor, Tilemap, Shadowcaster, World, Entity, Assembler) {
+})(this, function (Emitter, Cursor, Tilemap, World, Entity, Assembler) {
 
 
-  function GameMap(world){
+  function GameMap(world, FOVFunc){
     Emitter.call(this);
 
     if (!(world instanceof World)){
@@ -116,7 +113,7 @@
       if (tile !== null){
         var mv = tile.moveability;
         if (tile.moveability > 0){
-          var ents = eactor.forEach(function(e){
+          eactor.forEach(function(e){
             if (e.position.c === c && e.position.r === r && e.physical.moveability < 1){
               if (mv > e.physical.moveability){
                 mv = e.physical.moveability;
@@ -125,6 +122,22 @@
           });
         }
         return mv;
+      }
+      return null;
+    };
+
+    this.getVisibility = function(c, r){
+      var tile = tmap.getTile(c, r);
+      if (tile !== null){
+        var vis = tile.visibility;
+        eactor.forEach(function(e){
+          if (e.position.c === c && e.position.r === r && e.physical.moveability < 1){
+            if (vis > e.physical.visibility){
+              vis = e.physical.visibility;
+            }
+          }
+        });
+        return vis;
       }
       return null;
     };
@@ -144,7 +157,7 @@
         var offsetC = camC - hcurC;
         var offsetR = camR - hcurR;
 
-        var fov = new Shadowcaster(tmap);
+        var fov = new FOVFunc(this);
         fov.col = camC;
         fov.row = camR;
         fov.radius = 5;
@@ -264,6 +277,60 @@
   GameMap.prototype.__proto__ = Emitter.prototype;
   GameMap.prototype.constructor = GameMap;
 
+  
+  GameMap.FOV = function(map){
+    var origin_c = 0;
+    var origin_r = 0;
+    var radius = 0;
+
+    Object.defineProperties(this, {
+      "col":{
+        enumerate: true,
+        get:function(){return origin_c;},
+        set:function(col){
+          if (typeof(col) !== 'number'){
+            throw new TypeError("Expected a number value");
+          }
+          origin_c = col;
+        }
+      },
+
+      "row":{
+        enumerate: true,
+        get:function(){return origin_r;},
+        set:function(row){
+          if(typeof(row) !== 'number'){
+            throw new TypeError("Expected a number value");
+          }
+          origin_r = row;
+        }
+      },
+
+      "radius":{
+        enumerate: true,
+        get:function(){return radius;},
+        set:function(r){
+          if(typeof(r) !== 'number'){
+            throw new TypeError("Expected a number value");
+          }
+          if (r <= 0){
+            throw new RangeError("Radius must be greater than zero.");
+          }
+          radius = r;
+        }
+      }
+    });
+
+    this.generate = function(){};
+    this.markMapSeen = function(){};
+
+    this.isVisible = function(c, r){
+      return false;
+    };
+  };
+  GameMap.FOV.prototype.constructor = GameMap.FOV;
+
+  
 
   return GameMap;
 });
