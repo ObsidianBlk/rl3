@@ -52,8 +52,8 @@
       if (assembler.db.entityHasComponents(e, [
         {name:"visual", type:tobj},
         {name:"physical", type:tobj},
-        {name:"door", type:tobj}
-      ])){
+        {name:"stateswitch", type:tobj}
+      ]) && e.type === "door"){
         if (!(e.id in doorDict)){
           doorDict[e.id] = e;
         }
@@ -71,9 +71,9 @@
       if (assembler.db.entityHasComponents(actee, [
         {name:"visual", type:tobj},
         {name:"physical", type:tobj},
-        {name:"door", type:tobj}
+        {name:"stateswitch", type:tobj}
       ])){
-        var nent = assembler.createEntity("door", actee.door.nextState);
+        var nent = assembler.createEntity("door", actee.stateswitch.nextState);
         world.removeEntity(actee);
         nent.position.c = actee.position.c;
         nent.position.r = actee.position.r;

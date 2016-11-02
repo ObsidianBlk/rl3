@@ -77,43 +77,6 @@ requirejs([
 
 
       // --------------------------------------------------------------------
-      // Temporary map setup code.
-
-      var ts = new Tileset("demo");
-      ts.set("floor", {
-        name:"Wood Floor",
-	description: "This is a wood floor you sassy buster you.",
-	primeglyph: parseInt("F0", 16),
-	betaglyph: -1,
-	moveability: 1.0,
-	visibility: 1.0,
-	foreground: "#a58740",
-	background: null
-      });
-      ts.set("wall", {
-        name:"Wooden Wall",
-	description: "This is a wooden wall... Sooo grainey",
-	primeglyph: parseInt("DB", 16),
-	betaglyph: -1,
-	moveability: 0.0,
-	visibility: 0.0,
-	foreground: "#a58740",
-	background: null
-      });
-
-      var map = new Tilemap();
-      var findex = map.useTile(ts.get("floor"));
-      var windex = map.useTile(ts.get("wall"));
-      map.initialize("map", "map", 200, 200);
-      map.createRoom(0, 0, 15, 15, findex, windex);
-      
-      //map.createRoom(14, 5, 10, 3, findex, windex);
-      map.createRoom(23, 0, 10, 30, findex, windex);
-      map.createCorridor(14, 5, 10, 0, findex, windex);
-      map.createRoom(54, 5, 10, 10, findex, windex);
-
-
-      // --------------------------------------------------------------------
       // Temporary ECS Test code
 
       /*assembler.defineAssemblage("creature", "human", "position,demographic,viz");
@@ -129,25 +92,13 @@ requirejs([
       assembler.db.addToEntity(player, "position");
       assembler.db.addToEntity(player, "visual");
       assembler.db.addToEntity(player, "actor");
+      assembler.db.addToEntity(player, "player");
       player.player = {};
       player.visual.primeGlyph = 2;
       player.visual.tint = "#FFF";
       player.position.c = 1;
       player.position.r = 1;
 
-      assembler.defineAssemblage("door", "door_opened", [
-        {name: "visual", idata:{primeglyph: 8, tint: "#a58740"}},
-        {name: "position"},
-        {name: "physical", idata:{moveability: 1.0, visibility: 1.0}},
-        {name: "door", idata:{nextState:"door_closed"}}
-      ]);
-
-      assembler.defineAssemblage("door", "door_closed", [
-        {name: "visual", idata:{primeglyph: 10, tint: "#a58740"}},
-        {name: "position"},
-        {name: "physical"},
-        {name: "door", idata:{nextState:"door_opened"}}
-      ]);
 
       var door = assembler.createEntity("door", "door_closed");
       door.position.c = 14;
@@ -162,8 +113,9 @@ requirejs([
       new GEPEditorState(term, kinput, fsm);
 
       var gstate = fsm.get("GameState");
-      gstate.map.tilemap = map;
-      gstate.player = player;
+      //gstate.map.tilemap = map;
+      //gstate.player = player;
+      gstate.world.addEntity(player);
       gstate.world.addEntity(door);
       //gstate.map.setTarget(player);
       
@@ -201,22 +153,3 @@ requirejs([
     });
   });
 });
-
-/*document.addEventListener("DOMContentLoaded", function(event) {
-  if (!(window.Game instanceof Object)){
-    throw new Error("Missing the 'Game' object.");
-  }
-  if (typeof(window.Game.application) === 'undefined'){
-    throw new Error("Missing 'Game.application'.");
-  }
-
-  window.Game.application.init(window, "terminal", "rogue", {
-    fonts: [
-      {name:"rogue", width:10, height:10, uri:"data/graphics/10x10/RogueObsidian_10x10.png"}
-    ],
-    screen: window.Game.Screen.game,
-    minColumns: 60,
-    minRows: 42
-  });
-  window.Game.application.start();
-});*/

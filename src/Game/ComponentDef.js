@@ -41,21 +41,56 @@
     var assembler = new Assembler();
     var cdb = assembler.db;
 
+
+    /* ---------------------------------------------------------------------------------------------------------------------------------------------
+       COMPONENT DEFINITIONS!
+       --------------------------------------------------------------------------------------------------------------------------------------------- */
+
+    // Location in map space the entity currently resides.
     cdb.defineComponent("position", {c:0, r:0});
+    
+    // How the entity is rendered on screen.
     cdb.defineComponent("visual", {
       primeglyph:1,
       betaglyph:2,
       tint: null,
       background: null
     });
+
+    // I totally forget what this was for...
+    // TODO: Delete this?
     cdb.defineComponent("actor", {});
 
+    cdb.defineComponent("player", {});
+
+    // Determins how the entity allows or blocks movement and sight.
     cdb.defineComponent("physical", {
       moveability: 0.0, // The ability to move THROUGH the entity.
       visibility: 0.0 // The ability to see THROUGH the entity.
     });
 
-    cdb.defineComponent("door", {nextState:""}); // nextState is the name of the assemblage which replaces the owning entity.
+    
+    cdb.defineComponent("stateswitch", {nextState:""}); // nextState is the name of the assemblage which replaces the owning entity.
+
+
+
+    /* ---------------------------------------------------------------------------------------------------------------------------------------------
+       ASSEMBLAGE DEFINITIONS!
+       --------------------------------------------------------------------------------------------------------------------------------------------- */
+
+    assembler.defineAssemblage("door", "door_opened", [
+      {name: "visual", idata:{primeglyph: 8, tint: "#a58740"}},
+      {name: "position"},
+      {name: "physical", idata:{moveability: 1.0, visibility: 1.0}},
+      {name: "stateswitch", idata:{nextState:"door_closed"}}
+    ]);
+
+    assembler.defineAssemblage("door", "door_closed", [
+      {name: "visual", idata:{primeglyph: 10, tint: "#a58740"}},
+      {name: "position"},
+      {name: "physical"},
+      {name: "stateswitch", idata:{nextState:"door_opened"}}
+    ]);
     
     return assembler;
   };

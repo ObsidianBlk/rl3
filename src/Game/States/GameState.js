@@ -9,6 +9,8 @@
       'src/R/ECS/Entity',
       'src/R/Graphics/Terminal',
       'src/R/Graphics/Cursor',
+      'src/R/Map/Tileset',
+      'src/R/Map/Tilemap',
       'src/R/Input/Keyboard',
       'src/Game/System/Navigation',
       'src/Game/System/Player',
@@ -27,6 +29,8 @@
         require('src/R/ECS/Entity'),
 	require('src/R/Graphics/Terminal'),
 	require('src/R/Graphics/Cursor'),
+        require('src/R/Map/Tileset'),
+        require('src/R/Map/Tilemap'),
 	require('src/R/Input/Keyboard'),
         require('src/Game/System/Navigation'),
         require('src/Game/System/Player'),
@@ -59,6 +63,8 @@
         root.R.ECS.Entity,
 	root.R.Graphics.Terminal,
 	root.R.Graphics.Cursor,
+        root.R.Map.Tileset,
+        root.R.Map.Tilemap,
 	root.R.Input.Keyboard,
         root.System.Navigation,
         root.System.Player,
@@ -68,7 +74,7 @@
       );
     }
   }
-})(this, function (FSM, World, Entity, Terminal, Cursor, Keyboard, Navigation, Player, GameMap, Doors, Shadowcaster) {
+})(this, function (FSM, World, Entity, Terminal, Cursor, Tileset, Tilemap, Keyboard, Navigation, Player, GameMap, Doors, Shadowcaster) {
 
   function GameState(terminal, keyboard, fsm, assembler, setActive){
     if (!(terminal instanceof Terminal)){
@@ -78,13 +84,48 @@
       throw new TypeError("Argument <keyboard> expected to be a Keyboard instance.");
     }
 
-    var player = null;
     var focus = false;
     var cursor = null;
     var updateMap = true;
 
+    // TODO: Make Tileset a more "global" object.
+    var ts = new Tileset("demo");
+    ts.set("floor", {
+      name:"Wood Floor",
+      description: "This is a wood floor you sassy buster you.",
+      primeglyph: parseInt("F0", 16),
+      betaglyph: -1,
+      moveability: 1.0,
+      visibility: 1.0,
+      foreground: "#a58740",
+      background: null
+    });
+    ts.set("wall", {
+      name:"Wooden Wall",
+      description: "This is a wooden wall... Sooo grainey",
+      primeglyph: parseInt("DB", 16),
+      betaglyph: -1,
+      moveability: 0.0,
+      visibility: 0.0,
+      foreground: "#a58740",
+      background: null
+    });
+
+
+    
     var world = new World();
     var map = new GameMap(world, Shadowcaster);
+    map.tilemap = new Tilemap();
+    var findex = map.tilemap.useTile(ts.get("floor"));
+    var windex = map.tilemap.useTile(ts.get("wall"));
+    map.tilemap.initialize("map", "map", 200, 200);
+    map.tilemap.createRoom(0, 0, 15, 15, findex, windex);
+    
+    map.tilemap.createRoom(23, 0, 10, 30, findex, windex);
+    map.tilemap.createCorridor(14, 5, 10, 0, findex, windex);
+    map.tilemap.createRoom(54, 5, 10, 10, findex, windex);
+
+
     world.registerSystem(new Navigation(world, map));
     world.registerSystem(new Player(world));
     world.registerSystem(new Doors(world, assembler));
@@ -92,50 +133,31 @@
 
     Object.defineProperties(this, {
       "map":{
-        enumerate:true,
+        enumerable:true,
         get:function(){return map;}
       },
 
       "world":{
-        enumerate:true,
+        enumerable:true,
         get:function(){return world;}
-      },
-      
-      "player":{
-        enumerate:true,
-        get:function(){return player;},
-        set:function(p){
-          if (!(p instanceof Entity)){
-            throw new TypeError("Expected Entity instance object.");
-          }
-          if (typeof(p.visual) !== 'undefined' && typeof(p.position) !== 'undefined'){
-            if (player !== p){
-              // TODO: Figure out how to "swap" or "remove" player entity;
-              player = p;
-              world.emit("add-entity", p);
-            }
-          }
-        }
       }
     });
 
     function onKeyUp(code){
-      if (player !== null){
-        var dc = 0;
-        var dr = 0;
-        if (Keyboard.CodeSameAsName(code, "up") === true){
-          dr = -1;
-        } else if (Keyboard.CodeSameAsName(code, "down") === true){
-          dr = 1;
-        } else if (Keyboard.CodeSameAsName(code, "left") === true){
-          dc = -1;
-        } else if (Keyboard.CodeSameAsName(code, "right") === true){
-          dc = 1;
-        }
-
-        world.emit("player-move", dc, dr);
-        updateMap = true;
+      var dc = 0;
+      var dr = 0;
+      if (Keyboard.CodeSameAsName(code, "up") === true){
+        dr = -1;
+      } else if (Keyboard.CodeSameAsName(code, "down") === true){
+        dr = 1;
+      } else if (Keyboard.CodeSameAsName(code, "left") === true){
+        dc = -1;
+      } else if (Keyboard.CodeSameAsName(code, "right") === true){
+        dc = 1;
       }
+
+      world.emit("player-move", dc, dr);
+      updateMap = true;
     };
 
     function onRenderResize(newres, oldres){

@@ -44,7 +44,7 @@
     var player = null;
     
     function OnNewEntity(e){
-      if (typeof(e.player) === typeof({}) && player === null){
+      if (e !== player && e.type === "actor" && typeof(e.player) === typeof({})){
         player = e;
       }
     }
