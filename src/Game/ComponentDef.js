@@ -78,6 +78,12 @@
        ASSEMBLAGE DEFINITIONS!
        --------------------------------------------------------------------------------------------------------------------------------------------- */
 
+    assembler.defineAssemblage("actor", "human", [
+      {name: "visual", idata:{primeglyph: 2, tint: "#fff"}},
+      {name: "position"},
+      {name: "physical", idata:{moveability: 0.0, visibility: 0.0}},
+    ]);
+
     assembler.defineAssemblage("door", "door_opened", [
       {name: "visual", idata:{primeglyph: 8, tint: "#a58740"}},
       {name: "position"},

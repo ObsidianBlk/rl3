@@ -1,6 +1,9 @@
 
 requirejs.config({
-  baseUrl:"./"
+  baseUrl:"./",
+  paths:{
+    tv4:'./node_modules/tv4/tv4'
+  }
 });
 requirejs([
   'src/R/System/Heartbeat',
@@ -74,35 +77,6 @@ requirejs([
         window: window,
 	terminalToWindow: true
       });
-
-
-      // --------------------------------------------------------------------
-      // Temporary ECS Test code
-
-      /*assembler.defineAssemblage("creature", "human", "position,demographic,viz");
-      assembler.defineAssemblage("creature", "elf", [
-	{name:"position"},
-	{name:"demographic", idata:{race:"elf"}},
-	{name:"viz", idata:{primeglyph:2, betaglyph:1}}
-      ]);
-
-      var human = assembler.createEntity("creature", "human");
-      var elf = assembler.createEntity("creature", "elf");*/
-      var player = new Entity("player", "actor");
-      assembler.db.addToEntity(player, "position");
-      assembler.db.addToEntity(player, "visual");
-      assembler.db.addToEntity(player, "actor");
-      assembler.db.addToEntity(player, "player");
-      player.player = {};
-      player.visual.primeGlyph = 2;
-      player.visual.tint = "#FFF";
-      player.position.c = 1;
-      player.position.r = 1;
-
-
-      var door = assembler.createEntity("door", "door_closed");
-      door.position.c = 14;
-      door.position.r = 5;
       
 
       // --------------------------------------------------------------------
@@ -111,14 +85,6 @@ requirejs([
       new MainMenuState(term, kinput, fsm, true);
       new GameState(term, kinput, fsm, assembler);
       new GEPEditorState(term, kinput, fsm);
-
-      var gstate = fsm.get("GameState");
-      //gstate.map.tilemap = map;
-      //gstate.player = player;
-      gstate.world.addEntity(player);
-      gstate.world.addEntity(door);
-      //gstate.map.setTarget(player);
-      
 
 
       var lastDigitSize = 0;

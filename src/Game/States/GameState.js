@@ -131,6 +131,19 @@
     world.registerSystem(new Doors(world, assembler));
     world.registerSystem(map, 0);
 
+    (function(){
+      var player = assembler.createEntity("actor", "human");
+      player.player = {};
+      player.position.c = 1;
+      player.position.r = 1;
+      world.addEntity(player);
+
+      var door = assembler.createEntity("door", "door_closed");
+      door.position.c = 14;
+      door.position.r = 5;
+      world.addEntity(door);
+    })();
+
     Object.defineProperties(this, {
       "map":{
         enumerable:true,

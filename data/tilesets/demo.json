@@ -1,0 +1,28 @@
+
+{
+  "name": "Demo",
+  "tiles": [
+    {
+      "id":"floor",
+      "name":"Wood Floor",
+      "description": "This is a wood floor you sassy buster you.",
+      "primeglyph": 240,
+      "moveability": 1.0,
+      "visibility": 1.0,
+      "foreground": "#a58740",
+      "background": null
+    },
+
+    {
+      "id":"wall",
+      "name":"Wooden Wall",
+      "description": "This is a wooden wall... Sooo grainey",
+      "primeglyph": parseInt("DB", 16),
+      "betaglyph": -1,
+      "moveability": 0.0,
+      "visibility": 0.0,
+      "foreground": "#a58740",
+      "background": null
+    }
+  ]
+}

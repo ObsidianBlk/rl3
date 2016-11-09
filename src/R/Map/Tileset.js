@@ -3,7 +3,11 @@
     /* -------------------------------------------------
        AMD style connection.
        ------------------------------------------------- */
-    define(['src/R/System/Emitter', 'src/R/Graphics/Color'], factory);
+    define([
+      'tv4',
+      'src/R/System/Emitter',
+      'src/R/Graphics/Color'
+    ], factory);
   } else if (typeof exports === 'object') {
     /* -------------------------------------------------
        CommonJS style connection.
@@ -16,6 +20,7 @@
 	Have fun!
        */
       module.exports = factory(
+        require('tv4'),
 	require('src/R/System/Emitter'),
         require('src/R/Graphics/Color')
       );
@@ -29,6 +34,7 @@
     }
 
     if (root.R.Browser.exists(root, [
+      "tv4",
       "R.System.Emitter",
       "R.Graphics.Color"
     ]) === false){
@@ -36,12 +42,85 @@
     }
 
     root.R.Browser.def(root, "R.Map.Tileset", factory(
+      root.tv4,
       root.R.System.Emitter,
       root.R.Graphics.Color
     ));
   }
-})(this, function (Emitter, Color) {
+})(this, function (tv4, Emitter, Color) {
 
+  var TILE_SCHEMA = {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "properties": {
+      "id":{
+        "type": "string"
+      },
+      "name": {
+        "type": "string"
+      },
+      "description": {
+        "type": "string"
+      },
+      "primeglyph": {
+        "type": "integer",
+        "minimum":0,
+        "maximum":255
+      },
+      "betaglyph": {
+        "type": "integer",
+        "minimum":0
+      },
+      "movability": {
+        "type": "number",
+        "minimum":0.0,
+        "maximum":1.0
+      },
+      "visibility": {
+        "type": "number",
+        "minimum":0.0,
+        "maximum":1.0
+      },
+      "foreground": {
+        "type": ["string", "null"]
+      },
+      "background": {
+        "type": ["string", "null"]
+      }
+    },
+    "required": [
+      "name",
+      "description",
+      "primeglyph",
+      "movability",
+      "visibility",
+      "foreground",
+      "background"
+    ]
+  };
+
+  var TILESET_SCHEMA = {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "tiles": {
+        "type": "array",
+        "items": TILE_SCHEMA
+      }
+    },
+    "required": [
+      "name",
+      "tiles"
+    ]
+  };
+
+
+  var TILESETS = {};
+
+  
   /*
 
     [
@@ -107,7 +186,11 @@
 
 
   function Tileset(name){
+    if (name in TILESETS){
+      throw new Error("Tileset with name '" + name + "' already exists.");
+    }
     Emitter.call(this);
+    TILESETS[name] = this;
 
     var tlist = [];
 
@@ -128,6 +211,29 @@
       }
       return null;
     }
+
+    this.add = function(data){
+      if (typeof(data) === 'string'){
+        try{
+          data = JSON.parse(data);
+        } catch (e) {
+          console.error(e.message);
+          return;
+        }
+      }
+
+      var valid = tv4.validate(data, TILE_SCHEMA);
+      if (valid === false){
+        console.error(tv4.error);
+      } else {
+        var tile = GetTileInfoObject(data.id);
+        if (tile === null){
+          tlist.push({data:data});
+        } else {
+          this.set(data.id, data);
+        }
+      }
+    };
 
     this.contains = function(id){
       return (tlist.filter(function(i){
@@ -226,9 +332,48 @@
   Tileset.prototype.__proto__ = Emitter.prototype;
   Tileset.prototype.constructor = Tileset;
 
+  Tileset.Exists = function(name){
+    return (name in TILESETS);
+  };
+
+  Tileset.Get = function(name){
+    if (name in TILESETS){
+      return TILESETS[name];
+    }
+    return null;
+  };
+
+  Tileset.FromJSON = function(data){
+    if (typeof(data) === 'string'){
+      try{
+        data = JSON.parse(data);
+      } catch (e) {
+        console.error(e.message);
+        throw new Error("String failed to parse as JSON.");
+      }
+    }
+
+    var valid = tv4.validate(data, TILESET_SCHEMA);
+    if (valid === false){
+      console.error(tv4.error);
+      throw new Error("JSON data does not match Tileset schema.");
+    } else {
+      if (Tileset.Exists(data.name) === false){
+        var ts = new Tileset(data.name);
+        data.tiles.forEach(function(t){
+          ts.add(t);
+        });
+      } else {
+        throw new Error("Tileset '" + data.name + "' already defined.");
+      }
+    }
+  };
 
 
 
+  /* ----------------------------------------------------------------------------------------------------------------------------------------------
+     
+     --------------------------------------------------------------------------------------------------------------------------------------------*/
 
   Tileset.Tile = function(tileset, obj){
     Emitter.call(this);
@@ -256,7 +401,7 @@
       }
     };
 
-    this.set = function(info){
+    /*this.set = function(info){
       if (obj.id === null){throw new Error("Tile Handler Invalid");}
       var changed = [];
       if (typeof(info.name) === 'string' && info.name.length > 0){
@@ -306,7 +451,7 @@
       if (changed.length > 0){
 	this.emit("changed", changed);
       }
-    };
+    };*/
 
     Object.defineProperties(this, {
       "valid":{
