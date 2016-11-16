@@ -89,26 +89,54 @@
     var updateMap = true;
 
     // TODO: Make Tileset a more "global" object.
-    var ts = new Tileset("demo");
-    ts.set("floor", {
+    /*var ts = new Tileset("demo");
+    ts.add({
+      id:"floor",
       name:"Wood Floor",
       description: "This is a wood floor you sassy buster you.",
       primeglyph: parseInt("F0", 16),
-      betaglyph: -1,
       moveability: 1.0,
       visibility: 1.0,
       foreground: "#a58740",
       background: null
     });
-    ts.set("wall", {
+    ts.add({
+      id:"wall",
       name:"Wooden Wall",
       description: "This is a wooden wall... Sooo grainey",
       primeglyph: parseInt("DB", 16),
-      betaglyph: -1,
       moveability: 0.0,
       visibility: 0.0,
       foreground: "#a58740",
       background: null
+      });*/
+
+    var ts = Tileset.FromJSON({
+      name:"demo",
+      description:"Who the hell cares?!",
+      tiles:[
+        {
+          id:"floor",
+          name:"Wood Floor",
+          description: "This is a wood floor you sassy buster you.",
+          primeglyph: parseInt("F0", 16),
+          moveability: 1.0,
+          visibility: 1.0,
+          foreground: "#a58740",
+          background: null
+        },
+
+        {
+          id:"wall",
+          name:"Wooden Wall",
+          description: "This is a wooden wall... Sooo grainey",
+          primeglyph: parseInt("DB", 16),
+          moveability: 0.0,
+          visibility: 0.0,
+          foreground: "#a58740",
+          background: null
+        }
+      ]
     });
 
 
