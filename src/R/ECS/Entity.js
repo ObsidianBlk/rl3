@@ -32,7 +32,7 @@
     if (typeof(type) !== 'string' || type.length <= 0){
       throw new Error("Invalid type value.");
     }
-    if (Entity.exists(id)){
+    if (Entity.Exists(id)){
       throw new Error("Entity already exists with the ID \"" + id + "\".");
     }
 
@@ -87,7 +87,7 @@
     }
   }
 
-  Entity.setValues = function(e, vdata){
+  Entity.SetValues = function(e, vdata){
     if (!(e instanceof Entity)){
       throw new TypeError("Operation requires an Entity object instance.");
     }
@@ -104,7 +104,7 @@
     }
   };
 
-  Entity.exists = function(id){
+  Entity.Exists = function(id){
     for (var key in EntityDB){
       if (id in EntityDB[key]){
 	return true;
@@ -113,7 +113,7 @@
     return false;
   };
 
-  Entity.get = function(id, type){
+  Entity.Get = function(id, type){
     var e = null;
     if (typeof(type) === 'string'){
       if (id in EntityDB[type]){
@@ -132,15 +132,19 @@
     return e;
   };
 
-  Entity.remove = function(id, type){
+  Entity.Remove = function(id, type){
     var e = Entity.get(id, type);
     if (e !== null){
       delete EntityDB[e.type][e.id];
     }
   };
 
-  Entity.serialize = function(){
+  Entity.Serialize = function(){
     return JSON.stringify(EntityDB);
+  };
+
+  Entity.Deserialize = function(data){
+
   };
 
   return Entity;

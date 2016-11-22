@@ -142,7 +142,7 @@
 	      var cname = component[i];
 	      db.addToEntity(e, cname);
 	    }
-	    Entity.setValues(e, compdef);
+	    Entity.SetValues(e, compdef);
 	  }
 	}
       }
