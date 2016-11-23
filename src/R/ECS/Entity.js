@@ -23,7 +23,10 @@
   }
 })(this, function () {
 
-  var EntityDB = {};
+  var EntityDB = {
+    _ids:[],
+    _default:{}
+  };
 
   function Entity(id, type){
     if (typeof(id) !== 'string' || id.length <= 0){
@@ -37,32 +40,64 @@
     }
 
     // Store the entity in our little database.
-    if (!(type in EntityDB)){
-      EntityDB[type] = {};
+    if (!(type in EntityDB._default)){
+      EntityDB._default[type] = {};
     }
-    EntityDB[type][id] = this;
+    EntityDB._default[type][id] = this;
+
+    var container = "_default";
 
     Object.defineProperties(this, {
       "valid":{
 	enumerable:false,
 	get:function(){
-	  if (type in EntityDB){
+          if (container in EntityDB && type in EntityDB[container]){
 	    return (id in EntityDB[type]);
 	  }
 	  return false;
 	}
       },
 
+      "_container":{
+        enumerable:false,
+        get:function(){
+          return container;
+        },
+        set:function(ncontainer){
+          if (typeof(ncontainer) === 'undefined' || ncontainer === ""){
+            ncontainer = "";
+          }
+          if (ncontainer.substr(0,1) === "_"){
+            throw new Error("Names starting with underscores are reserved.");
+          }
+          if (ncontainer === ""){
+            ncontainer = "_default";
+          }
+          if (container === ncontainer){return;}
+
+          
+          if (!(ncontainer in EntityDB)){
+            EntityDB[ncontainer] = {};
+          }
+          delete EntityDB[container][type][id];
+          if (!(type in EntityDB[ncontainer])){
+            EntityDB[ncontainer][type] = {};
+          }
+          EntityDB[ncontainer][type][id] = this;
+          container = ncontainer;
+        }
+      },
+
       "id":{
 	value:id,
 	writable:false,
-	enumerable:true
+	enumerable:false
       },
 
       "type":{
 	value:type,
 	writable:false,
-	enumerable:true
+	enumerable:false
       }
     });
   }
@@ -96,7 +131,7 @@
     }
 
     for (var key in e){
-      if (key !== "id" && key !== "type" && key !== "valid"){
+      if (key !== "id" && key !== "type" && key !== "valid" && key !== "container"){
 	if (vdata.hasOwnProperty(key) && vdata[key] !== null && typeof(vdata[key]) === typeof({})){
 	  ObjToObjValueCopy(e[key], vdata[key]);
 	}
@@ -105,46 +140,82 @@
   };
 
   Entity.Exists = function(id){
-    for (var key in EntityDB){
-      if (id in EntityDB[key]){
-	return true;
-      }
-    }
-    return false;
+    return (EntityDB._ids.filter(function(eid){return eid === id;}).length > 0);
   };
 
-  Entity.Get = function(id, type){
-    var e = null;
-    if (typeof(type) === 'string'){
-      if (id in EntityDB[type]){
-	e = EntityDB[type][id];
-      }
-    } else if (type instanceof Array){
-      var keys = Object.keys(EntityDB);
-      for (var key in keys){
-	if (id in EntityDB[type]){
-	  e = EntityDB[type][id];
-	  break;
-	}
+  Entity.Get = function(container, id, type){
+    if (typeof(container) === 'string' && typeof(type) === 'string' && typeof(id) === 'string'){
+      if (container in EntityDB){
+        if (type in EntityDB[container]){
+          if (id in EntityDB[container][type]){
+            return EntityDB[container][type][id];
+          }
+        }
       }
     }
 
-    return e;
+    return null;
   };
 
-  Entity.Remove = function(id, type){
-    var e = Entity.get(id, type);
-    if (e !== null){
-      delete EntityDB[e.type][e.id];
+  Entity.Remove = function(e){
+    if (e instanceof Entity && e.valid === true){
+      delete EntityDB[e.container][e.type][e.id];
+      EntityDB._ids = EntityDB._ids.filter(function(eid){
+        return (eid !== e.id);
+      });
     }
   };
 
-  Entity.Serialize = function(){
-    return JSON.stringify(EntityDB);
+  Entity.Serialize = function(container){
+    if (container in EntityDB){
+      return JSON.stringify(EntityDB[container]);
+    }
+    return "";
   };
 
-  Entity.Deserialize = function(data){
+  Entity.Deserialize = function(container, data){
+    if (!container in EntityDB){
+      EntityDB[container] = {};
+      if (typeof(data) === 'string'){
+        try {
+          data = JSON.parse(data);
+        } catch (e){
+          throw Error("Entity Deserialization Failed: \"" + e.message + "\"");
+        }
+      }
+      if (typeof(data) !== typeof({})){
+        throw new TypeError("Unable to read data.");
+      }
 
+      var typekeys = Object.keys(data);
+      for (var ti=0; ti < typekeys.length; ti++){
+        var type = typekeys[ti];
+        if (typeof(data[type]) !== typeof({})){
+          throw new Error("Entity Type container not an object.");
+        }
+
+        var idkeys = Object.keys(data[type]);
+        for (var i=0; i < idkeys.length; i++){
+          var id = idkeys[i];
+          if (typeof(data[type][id]) !== typeof({})){
+            throw new Error("Entity type/id not an object.");
+          }
+
+          if (Entity.exists(id) === true){
+            throw new Error("Entity with id '" + id + "' already exists in database.");
+          }
+
+          if (!(type in EntityDB[container])){
+            EntityDB[container][type] = {};
+          }
+          var e = new Entity(id, type);
+          if (container !== "_default"){
+            e.container = container;
+          }
+          Entity.SetValues(e, data[type][id]);
+        }
+      }
+    }
   };
 
   return Entity;
