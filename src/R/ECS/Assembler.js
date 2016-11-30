@@ -148,6 +148,45 @@
       }
       return e;
     };
+
+    this.serialize = function(){
+      return JSON.stringify(assemblage);
+    };
+
+    this.deserialize = function(data){
+      if (typeof(data) === 'string'){
+        try {
+          data = JSON.parse(data);
+        } catch (e) {
+          throw e;
+        }
+      }
+
+      if (typeof(data) === typeof({})){
+        var typelist = Object.keys(data);
+        for (var t=0; t < typelist.length; t++){
+          var type = typelist[t];
+
+          var namelist = Object.keys(data[type]);
+          for (var n=0; n < namelist.length; n++){
+            var name = namelist[n];
+            
+            var complist = Object.keys(data[type][name]);
+            for (var c=0; c < complist.length; c++){
+              var comp = complist[c];
+              var idata = data[type][name][comp];
+
+              complist[c] = {name:comp};
+              if (typeof(idata) === typeof({})){
+                complist[c].idata = idata;
+              }
+            }
+
+            this.defineAssemblage(type, name, complist);
+          }
+        }
+      }
+    };
   }
   Assembler.prototype.constructor = Assembler;
 

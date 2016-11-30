@@ -136,6 +136,29 @@
       }
       return false;
     };
+
+    this.serialize = function(){
+      return JSON.stringify(definition);
+    };
+
+    this.deserialize = function(data){
+      if (typeof(data) === 'string'){
+        try {
+          data = JSON.parse(data);
+        } catch (e) {
+          throw e;
+        }
+      }
+
+      if (typeof(data) !== typeof({})){
+        throw new TypeError("Expected object.");
+      }
+
+      var key = Object.keys(data);
+      for (var i=0; i < key.length; i++){
+        this.defineComponent(key[i], data[key[i]]);
+      }
+    };
   }
 
   return ComponentDB;
