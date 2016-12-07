@@ -5,6 +5,7 @@
        AMD style connection.
        ------------------------------------------------- */
     define([
+      'src/R/System/Loader',
       'src/R/ECS/Assembler',
       'src/R/ECS/ComponentDB'
     ], factory);
@@ -14,6 +15,7 @@
        ------------------------------------------------- */
     if(typeof module === "object" && module.exports){
       module.exports = factory(
+        require('src/R/System/Loader'),
 	require('src/R/ECS/Assembler'),
         require('src/R/ECS/ComponentDB')
       );
@@ -30,20 +32,33 @@
     }
     if (typeof(root.ComponentDef) === 'undefined'){
       root.States.Game = factory(
+        root.R.System.Loader,
 	root.R.ECS.Assembler,
 	root.R.ECS.ComponentDB
       );
     }
   }
-})(this, function (Assembler, ComponentDB) {
+})(this, function (Loader, Assembler, ComponentDB) {
 
   return function(){
     var assembler = new Assembler();
     var cdb = assembler.db;
 
     // NOTE: This section assumes code is running on NWJS. This will break like crazy in a browser. How crazy? Don't know. :-/
+
+    var loader = new Loader();
+    console.log(loader.type);
+    loader.load('data/defs/components.json', function(cerr, cdata){
+      if (cerr) throw cerr;
+      cdb.deserialize(cdata.toString());
+
+      loader.load('data/defs/assemblages.json', function(aerr, adata){
+        if (aerr) throw aerr;
+        assembler.deserialize(adata.toString());
+      });
+    });
     
-    var fs = require('fs');
+    /*var fs = require('fs');
     fs.readFile('data/defs/components.json', function(cerr, cdata){
       if (cerr) throw cerr;
       cdb.deserialize(cdata.toString());
@@ -52,7 +67,7 @@
         if (aerr) throw aerr;
         assembler.deserialize(adata.toString());
       });
-    });
+    });*/
     
     // ------------------------------------------------------------
 

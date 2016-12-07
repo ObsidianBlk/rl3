@@ -7,6 +7,7 @@ requirejs.config({
 });
 requirejs([
   'src/R/System/Heartbeat',
+  'src/R/System/Loader',
   'src/R/Input/Keyboard',
   'src/R/Graphics/Color',
   'src/R/Graphics/Glyph',
@@ -17,13 +18,13 @@ requirejs([
   'src/R/ECS/Entity',
   'src/R/ECS/ComponentDB',
   'src/R/ECS/Assembler',
-  'src/Game/ComponentDef',
   'src/Game/FSM',
   'src/Game/System/GameMap',
   'src/Game/States/GameState',
   'src/Game/States/MainMenuState',
   'src/Game/States/GEPEditorState'
 ], function(Heartbeat,
+            Loader,
             Keyboard,
             Color,
             Glyph,
@@ -34,7 +35,6 @@ requirejs([
             Entity,
             ComponentDB,
             Assembler,
-            ComponentDef,
             FSM,
             GameMap,
             GameState,
@@ -58,7 +58,8 @@ requirejs([
   // --------------------------------
   // App starts here :)
   ready(function(){
-    var assembler = ComponentDef();
+    var assembler = new Assembler();
+    var cdb = assembler.db;
     
     // --------------------------------------------------------------------
     var kinput = new Keyboard(window);
@@ -83,8 +84,21 @@ requirejs([
 
       var fsm = new FSM();
       new MainMenuState(term, kinput, fsm, true);
-      new GameState(term, kinput, fsm, assembler);
-      new GEPEditorState(term, kinput, fsm);
+
+      var loader = new Loader();
+      console.log(loader.type);
+      loader.load('data/defs/components.json', function(cerr, cdata){
+        if (cerr) throw cerr;
+        cdb.deserialize(cdata.toString());
+
+        loader.load('data/defs/assemblages.json', function(aerr, adata){
+          if (aerr) throw aerr;
+          assembler.deserialize(adata.toString());
+
+          new GameState(term, kinput, fsm, assembler);
+          new GEPEditorState(term, kinput, fsm);
+        });
+      });
 
 
       var lastDigitSize = 0;
