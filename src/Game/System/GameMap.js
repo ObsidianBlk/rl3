@@ -203,7 +203,7 @@
                 This needs to be rewritten. Why filter through the already filtered vlist for every cell. This is bullsh*t.
               */
               var v = vislist.filter(function(e){
-                if (e.position.c === offsetC+c && e.position.r === offsetR+r){
+                if (e.visual.visible === true && e.position.c === offsetC+c && e.position.r === offsetR+r){
                   return true;
                 }
                 return false;

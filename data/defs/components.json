@@ -6,6 +6,7 @@
   },
 
   "visual":{
+    "visible":true,
     "primeglyph":1,
     "betaglyph":2,
     "tint": null,

@@ -11,6 +11,19 @@
         "moveability": 0.0,
         "visibility": 0.0
       }
+    },
+
+    "reticle":{
+      "visual":{
+        "primeglyph":89,
+        "tint": "#fa0",
+        "visible": false
+      },
+      "position":null,
+      "physical":{
+        "moveability":1.0,
+        "visibility":1.0
+      }
     }
   },
 

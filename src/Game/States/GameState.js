@@ -76,6 +76,9 @@
   }
 })(this, function (FSM, World, Entity, Terminal, Cursor, Tileset, Tilemap, Keyboard, Navigation, Player, GameMap, Doors, Shadowcaster) {
 
+  var UI_WIDTH = 12;
+  var DIALOG_HEIGHT = 6;
+
   function GameState(terminal, keyboard, fsm, assembler, setActive){
     if (!(terminal instanceof Terminal)){
       throw new TypeError("Argument <terminal> expected to be a Terminal instance.");
@@ -85,7 +88,12 @@
     }
 
     var focus = false;
-    var cursor = null;
+    //var cursor = null;
+
+    var cursor_map = null;
+    var cursor_ui = null;
+    var cursor_dialog = null;
+    
     var updateMap = true;
 
     // TODO: Make Tileset a more "global" object.
@@ -166,6 +174,10 @@
       player.position.r = 1;
       world.addEntity(player);
 
+      var reticle = assembler.createEntity("actor", "reticle");
+      reticle.reticle = {};
+      world.addEntity(reticle);
+
       var door = assembler.createEntity("door", "door_closed");
       door.position.c = 14;
       door.position.r = 5;
@@ -195,31 +207,49 @@
         dc = -1;
       } else if (Keyboard.CodeSameAsName(code, "right") === true){
         dc = 1;
+      } else if (Keyboard.CodeSameAsName(code, "l") === true){
+        world.emit("toggle-reticle");
       }
 
-      world.emit("player-move", dc, dr);
+      if (dc !== 0 || dr !== 0){
+        world.emit("player-move", dc, dr);
+      }
       updateMap = true;
     };
 
     function onRenderResize(newres, oldres){
-      cursor.region = {
+      cursor_map.region = {
 	left: 0,
 	top: 0,
-	right: newres[0]-1,
-	bottom: newres[1]-1
+	right: newres[0]-UI_WIDTH,
+	bottom: newres[1]-DIALOG_HEIGHT
+      };
+
+      cursor_ui.region = {
+        left: newres[0] - UI_WIDTH,
+        top: 0,
+        right: newres[0]-1,
+        bottom: newres[1]-DIALOG_HEIGHT
+      };
+
+      cursor_dialog.region = {
+        left: 0,
+        top: newres[1]-DIALOG_HEIGHT,
+        right: newres[0]-1,
+        bottom: newres[1]-1
       };
       Render();
     }
 
     function Render(){
-      cursor.c = 0;
-      cursor.r = cursor.rows - 1;
-      cursor.textOut("Frames Per Second:");
+      cursor_dialog.c = 0;
+      cursor_dialog.r = 1;
+      cursor_dialog.textOut("Frames Per Second:");
 
-      cursor.c = 0;
-      cursor.r = 0;
+      cursor_map.c = 0;
+      cursor_map.r = 0;
       if (map instanceof GameMap){
-        map.draw(cursor);
+        map.draw(cursor_map);
       }
     }
 
@@ -228,14 +258,18 @@
     }
 
     this.enter = function(){
-      cursor = new Cursor(terminal);
+      cursor_map = new Cursor(terminal);
+      cursor_ui = new Cursor(terminal);
+      cursor_dialog = new Cursor(terminal);
     };
 
     this.getFocus = function(){
       terminal.on("renderResize", onRenderResize);
       keyboard.onCombo("ctrl+shift+esc", onExitCombo);
       keyboard.on("keyup", onKeyUp);
-      cursor.clear();
+      cursor_map.clear();
+      cursor_ui.clear();
+      cursor_dialog.clear();
       onRenderResize([terminal.columns, terminal.rows], null);
       focus = true;
     };
@@ -248,7 +282,9 @@
     };
 
     this.exit = function(){
-      cursor = null;
+      cursor_map = null;
+      cursor_ui = null;
+      cursor_dialog = null;
       focus = false;
     };
 
@@ -262,11 +298,11 @@
         }
         
 	if (lastDigitSize > 0){
-	  cursor.clearRegion(19, cursor.rows - 1, lastDigitSize, 1);
+	  cursor_dialog.clearRegion(19, 1, lastDigitSize, 1);
 	}
-	cursor.c = 19;
-	cursor.r = cursor.rows - 1;
-	cursor.textOut(fps.toString());
+	cursor_dialog.c = 19;
+	cursor_dialog.r = 1;
+	cursor_dialog.textOut(fps.toString());
 	lastDigitSize = fps.toString().length;
       }
     };
