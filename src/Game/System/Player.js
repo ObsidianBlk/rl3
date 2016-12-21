@@ -47,6 +47,7 @@
     function OnNewEntity(e){
       if (e !== player && e.type === "actor" && typeof(e.player) === typeof({})){
         player = e;
+        world.emit("camera-position", player.position.c, player.position.r);
       } else if (e !== reticle && e.type === "actor" && typeof(e.reticle) === typeof({})){
         reticle = e;
         reticle.visual.visible = false;

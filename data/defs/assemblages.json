@@ -15,12 +15,13 @@
 
     "reticle":{
       "visual":{
-        "primeglyph":89,
-        "tint": "#fa0",
+        "primeglyph":88,
+        "tint": "#ff6",
         "visible": false
       },
       "position":null,
       "physical":{
+        "collidable":false,
         "moveability":1.0,
         "visibility":1.0
       }

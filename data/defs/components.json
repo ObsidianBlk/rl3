@@ -14,6 +14,7 @@
   },
 
   "physical":{
+    "collidable":true,
     "moveability": 0.0,
     "visibility": 0.0
   },

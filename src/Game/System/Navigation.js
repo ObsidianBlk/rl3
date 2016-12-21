@@ -63,20 +63,14 @@
         var nr = e.position.r + dr;
 
         var moveability = map.getMoveability(nc, nr);
-        if (moveability < 1){
+        if (moveability < 1 && e.physical.collidable === true){
           var ents = map.getEntities(nc, nr).sort(function(a, b){
             return a.physical.moveability - b.physical.moveability;
           });
           if (ents.length > 0){
             world.emit("interact", e, ents[0]);
           }
-          
-          //r (var i=0; i < ents.length; i++){
-          //if (ents[i].physical.moveability <= 0){
-          //  world.emit("interact", e, ents[i]);
-          //}
-          //
-        } else if (moveability !== null && moveability > 0){
+        } else if ((moveability !== null && moveability > 0) || e.physical.collidable === false){
           e.position.c = nc;
           e.position.r = nr;
         }
@@ -86,7 +80,7 @@
     function OnPosition(e, c, r){
       if (e.id in Entities){
         var moveability = map.getMoveability(c, r);
-        if (moveability !== null && moveability > 0){
+        if ((moveability !== null && moveability > 0) || e.physical.collidable === false){
           e.position.c = c;
           e.position.r = r;
         }

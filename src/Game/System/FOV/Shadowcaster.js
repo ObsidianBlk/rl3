@@ -169,6 +169,7 @@
       for (var i=0; i < mapsize; i++){
         fovmap.push(0);
       }
+      fovmap[(size*(this.radius))+(this.radius)] = 1;
       
       CalculateOctant(0);
       CalculateOctant(1);

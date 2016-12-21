@@ -109,7 +109,8 @@
     for (var key in dst){
       var keytype = typeof(dst[key]);
       if (src.hasOwnProperty(key) === true && src[key] !== null){
-	if (typeof(dst[key]) === typeof(src[key])){
+	if (dst[key] === null || keytype === typeof(src[key])){
+          keytype = (dst[key] === null) ? typeof(src[key]) : keytype;
 	  if (keytype === typeof({})) {
 	    ObjToObjValueCopy(dst[key], src[key]);
 	  } else if (keytype === typeof([])){
