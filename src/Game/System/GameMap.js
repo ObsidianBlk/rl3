@@ -50,7 +50,7 @@
 })(this, function (Emitter, Cursor, Tilemap, World, Entity, Assembler) {
 
 
-  function GameMap(world, FOVFunc){
+  function GameMap(world){
     Emitter.call(this);
 
     if (!(world instanceof World)){
@@ -148,21 +148,17 @@
       });
     };
 
-    this.draw = function(cursor){
-      if (cursor instanceof Cursor){
+    this.draw = function(cursor, fov){
+      if (cursor instanceof Cursor && fov instanceof GameMap.FOV){
 
+        camC = fov.col;
+        camR = fov.row;
+        
         var hcurC = Math.floor(cursor.columns*0.5);
         var hcurR = Math.floor(cursor.rows*0.5);
         
         var offsetC = camC - hcurC;
         var offsetR = camR - hcurR;
-
-        var fov = new FOVFunc(this);
-        fov.col = camC;
-        fov.row = camR;
-        fov.radius = 5;
-        fov.generate();
-        fov.markMapSeen();
 
         var vislist = evis.filter(function(e){
           if (e.position.c >= camC - hcurC && e.position.c <= camC + hcurC){
@@ -179,7 +175,7 @@
           for (var c=0; c < cursor.columns; c++){
             cursor.c = c;
             var tile = tmap.getTile(offsetC + c, offsetR + r);
-            if (tile !== null && tmap.isSeen(offsetC + c, offsetR + r) === true){
+            if (tile !== null && fov.visited(offsetC + c, offsetR + r) === true){
               var gindex = tile.primeglyph;
               var opts = {};
               var visible = fov.isVisible(offsetC + c, offsetR + r);
@@ -268,20 +264,16 @@
     });
 
     world.on("remove-entity", RemoveEntity);
-
-    world.on("camera-position", function(c, r){
-      camC = c;
-      camR = r;
-    });
   }
   GameMap.prototype.__proto__ = Emitter.prototype;
   GameMap.prototype.constructor = GameMap;
 
   
-  GameMap.FOV = function(map){
+  GameMap.FOV = function(){
     var origin_c = 0;
     var origin_r = 0;
     var radius = 0;
+    var trackVisits = false;
 
     Object.defineProperties(this, {
       "col":{
@@ -318,12 +310,21 @@
           }
           radius = r;
         }
+      },
+
+      "trackVisits":{
+        enumerable: true,
+        get:function(){return trackVisits;},
+        set:function(e){
+          trackVisits = (e === true);
+        }
       }
     });
 
     this.generate = function(){};
-    this.markMapSeen = function(){};
-
+    this.visited = function(c, r){
+      return false;
+    };
     this.isVisible = function(c, r){
       return false;
     };

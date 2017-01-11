@@ -96,29 +96,6 @@
     
     var updateMap = true;
 
-    // TODO: Make Tileset a more "global" object.
-    /*var ts = new Tileset("demo");
-    ts.add({
-      id:"floor",
-      name:"Wood Floor",
-      description: "This is a wood floor you sassy buster you.",
-      primeglyph: parseInt("F0", 16),
-      moveability: 1.0,
-      visibility: 1.0,
-      foreground: "#a58740",
-      background: null
-    });
-    ts.add({
-      id:"wall",
-      name:"Wooden Wall",
-      description: "This is a wooden wall... Sooo grainey",
-      primeglyph: parseInt("DB", 16),
-      moveability: 0.0,
-      visibility: 0.0,
-      foreground: "#a58740",
-      background: null
-      });*/
-
     var ts = Tileset.FromJSON({
       name:"demo",
       description:"Who the hell cares?!",
@@ -150,7 +127,7 @@
 
     
     var world = new World();
-    var map = new GameMap(world, Shadowcaster);
+    var map = new GameMap(world);
     map.tilemap = new Tilemap();
     var findex = map.tilemap.useTile(ts.get("floor"));
     var windex = map.tilemap.useTile(ts.get("wall"));
@@ -161,9 +138,12 @@
     map.tilemap.createCorridor(14, 5, 10, 0, findex, windex);
     map.tilemap.createRoom(54, 5, 10, 10, findex, windex);
 
+    var sysPlayer = new Player(world);
+    sysPlayer.map = map;
+
 
     world.registerSystem(new Navigation(world, map));
-    world.registerSystem(new Player(world));
+    world.registerSystem(sysPlayer);
     world.registerSystem(new Doors(world, assembler));
     world.registerSystem(map, 0);
 
@@ -249,7 +229,7 @@
       cursor_map.c = 0;
       cursor_map.r = 0;
       if (map instanceof GameMap){
-        map.draw(cursor_map);
+        map.draw(cursor_map, sysPlayer.fov);
       }
     }
 

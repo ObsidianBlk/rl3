@@ -47,7 +47,7 @@
       root.R.Map.Tileset
     ));
   }
-})(this, function (Emitter, Color, Tileset, Entity) {
+})(this, function (Emitter, Color, Tileset) {
 
   function Tilemap(){
     Emitter.call(this);
@@ -79,17 +79,13 @@
 
 	map = [];
 	for (var i=0; i < w*h; i++){
-	  map.push({
-	    index: -1,
-	    seen: false
-	  });
+	  map.push(-1);
 	}
 	width = w;
 	height = h;
       }
       return this;
     };
-
 
     this.useTile = function(t){
       if (!(t instanceof Tileset.Tile)){
@@ -113,7 +109,7 @@
       return -1;
     };
 
-    this.setTile = function(x, y, index_or_tile, markAsSeen){
+    this.setTile = function(x, y, index_or_tile){
       if (map === null){
 	throw new Error("Map not initialized.");
       }
@@ -130,10 +126,7 @@
 	}
 
 	var index = (width*y) + x;
-	map[index].index = index_or_tile;
-	if (markAsSeen === true){
-	  map[index].seen = true;
-	}
+	map[index] = index_or_tile;
       } else {
 	throw new TypeError("Expected an index number or Tileset.Tile instance");
       }
@@ -162,7 +155,7 @@
 	  if (x < 0 || y < 0 || x >= width || y >= height){
 	    throw new RangeError("Coordinate out of bounds at index " + (i*2) + ".");
 	  }
-	  map[(y*width) + x].index = index_or_tile;
+	  map[(y*width) + x] = index_or_tile;
 	}
       } else {
 	throw new TypeError("Expected an index number or Tileset.Tile instance");
@@ -175,53 +168,13 @@
 	throw new Error("Map not initialized.");
       }
       if (x >= 0 && x < width && y >= 0 && y < height){
-	var tindex = map[(y*width)+x].index;
+	var tindex = map[(y*width)+x];
 	if (tindex >= 0 && tindex < tile.length){
 	  return tile[tindex];
 	}
       }
 
       return null;
-    };
-
-
-    this.markTileSeen = function(x, y, showTile){
-      if (map === null){
-	throw new Error("Map not initialized.");
-      }
-      if (x >= 0 && y >= 0 && x < width && y < height){
-	map[(width*y)+x].seen = (showTile === true) ? true : false;
-      }
-      return this;
-    };
-
-    
-    this.markTilesSeen = function(poslist, showTile){
-      if (map === null){
-	throw new Error("Map not initialized.");
-      }
-      if (poslist.length%2 > 0){
-        throw new RangeError("Position list must be a power of 2.");
-      }
-      var pcount = poslist.length/2;
-      for (var i=0; i < pcount; i++){
-        var x = poslist[(i*2)];
-        var y = poslist[(i*2)+1];
-        if (x >= 0 && y >= 0 && x < width && y < height){
-	  map[(y*width)+x].seen = (showTile === false) ? false : true;
-        }
-      }
-      return this;
-    };
-
-    this.isSeen = function(x, y){
-      if (map === null){
-	throw new Error("Map not initialized.");
-      }
-      if (x >= 0 && y >= 0 && x < width && y < height){
-        return map[(y*width)+x].seen;
-      }
-      return false;
     };
 
     this.createRoom = function(x, y, w, h, floortile, walltile, onlyOverwriteEmpty){
@@ -250,11 +203,11 @@
           for (var i=x; i < x+w; i++){
             if (i===x || i === (x+w)-1 || j===y || j ===(y+h)-1){
               if (onlyOverwriteEmpty === false || (onlyOverwriteEmpty === true && map[index+i].index < 0)){
-                map[index+i].index = walltile;
+                map[index+i] = walltile;
               }
             } else {
               if (onlyOverwriteEmpty === false || (onlyOverwriteEmpty === true && map[index+i].index < 0)){
-                map[index+i].index = floortile;
+                map[index+i] = floortile;
               }
             }
           }
@@ -292,11 +245,11 @@
           }
           for (var i=x; i < x+length; i++){
             if(y > 0){
-              map[(width*(y-1))+i].index = walltile;
+              map[(width*(y-1))+i] = walltile;
             }
-            map[index + i].index = floortile;
+            map[index + i] = floortile;
             if (y < height){
-              map[(width*(y+1))+i].index = walltile;
+              map[(width*(y+1))+i] = walltile;
             }
           }
         } else if (dir === 1){ // Verticle
@@ -306,11 +259,11 @@
           for (var j=y; j < y+length; y++){
             index = (width*j) + x;
             if(x - 1 >= 0){
-              map[index - 1].index = walltile;
+              map[index - 1] = walltile;
             }
-            map[index].index = floortile;
+            map[index] = floortile;
             if (index+1 < width*height){
-              map[index+1].index = walltile;
+              map[index+1] = walltile;
             }
           }
         }

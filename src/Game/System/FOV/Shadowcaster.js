@@ -100,14 +100,32 @@
   
   
 
-  function Shadowcaster(map){
-    GameMap.FOV.call(this, map);
+  function Shadowcaster(){
+    GameMap.FOV.call(this);
     var self = this;
     var fovmap = [];
-    //var origin_c = 0;
-    //var origin_r = 0;
-    //var radius = 0;
-    
+    var visitmap = null;
+    var map = null;
+
+    Object.defineProperties(this, {
+      "map":{
+        enumerable: true,
+        get:function(){return map;},
+        set:function(m){
+          if (m !== null && !(m instanceof GameMap)){
+            throw new TypeError("Expected GameMap object instance or null.");
+          }
+          if (m !== map){
+            map = m;
+          }
+        }
+      },
+
+      "fovmap":{
+        enumerable:true,
+        get:function(){return fovmap;}
+      }
+    });
     
     function OctantTransform(octant, row, col, setToOrigin){
       var or = self.radius;
@@ -139,22 +157,24 @@
     function CalculateOctant(octant){
       var sl = new shadowline();
       var radius = self.radius;
-      //var tmap = map.tilemap;
       for (var row=1; row < radius+1; row++){
         for (var col = 0; col <= row; col++){
-          var mpos = OctantTransform(octant, row, col, true);
-          var spos = OctantTransform(octant, row, col);
-          var tproj = ProjectTile(col, row);
+          var dist = Math.sqrt((col*col) + (row*row));
+          if (dist <= radius){
+            var mpos = OctantTransform(octant, row, col, true);
+            var spos = OctantTransform(octant, row, col);
+            var tproj = ProjectTile(col, row);
 
-          var findex = (spos.row*((radius*2)+1))+spos.col;
+            var findex = (spos.row*((radius*2)+1))+spos.col;
 
-          var vis = map.getVisibility(mpos.col, mpos.row);
-          if (vis !== null){
-            if (sl.inShadow(tproj) === false){
-              fovmap[findex] = 1;
-            }
-            if (vis < 1){
-              sl.add(tproj);
+            var vis = map.getVisibility(mpos.col, mpos.row);
+            if (vis !== null){
+              if (sl.inShadow(tproj) === false){
+                fovmap[findex] = 1;
+              }
+              if (vis < 1){
+                sl.add(tproj);
+              }
             }
           }
         }
@@ -170,27 +190,59 @@
         fovmap.push(0);
       }
       fovmap[(size*(this.radius))+(this.radius)] = 1;
-      
-      CalculateOctant(0);
-      CalculateOctant(1);
-      CalculateOctant(2);
-      CalculateOctant(3);
-      CalculateOctant(4);
-      CalculateOctant(5);
-      CalculateOctant(6);
-      CalculateOctant(7);
+
+      // Only calculate FOV if we have a MAP!
+      if (map !== null){
+        CalculateOctant(0);
+        CalculateOctant(1);
+        CalculateOctant(2);
+        CalculateOctant(3);
+        CalculateOctant(4);
+        CalculateOctant(5);
+        CalculateOctant(6);
+        CalculateOctant(7);
+
+        if (map !== null && this.trackVisits === true){
+          var mapwidth = map.tilemap.width;
+          var mapheight = map.tilemap.height;
+          
+          if (visitmap === null){
+            visitmap = new Array(mapwidth*mapheight);
+            visitmap.forEach(function(x, i){
+              visitmap[i] = 0;
+            });
+          }
+
+          var rsi = this.row - this.radius;
+          var csi = this.col - this.radius;
+
+          for (var r=rsi; r < rsi+size; r++){
+            for (var c=csi; c < csi+size; c++){
+              var vindex = (r*mapwidth) + c;
+              var findex = ((r-rsi)*size)+(c-csi);
+              if (fovmap[findex] === 1){
+                visitmap[vindex] = 1;
+              }
+            }
+          }
+        } else if (visitmap !== null){
+          visitmap = null;
+        }  
+      }
     };
 
-    this.markMapSeen = function(){
-      if (fovmap.length <=0 && this.radius > 0){return;}
-      var size = (this.radius*2)+1;
-      fovmap.forEach(function(v, i){
-        if (v === 1){
-          var col = ((i%size) - self.radius) + self.col;
-          var row = (Math.floor(i/size) - self.radius) + self.row;
-          map.tilemap.markTileSeen(col, row, true);
+    this.visited = function(c, r){
+      if (this.trackVisits === true){
+        if (map !== null && visitmap !== null){
+          var vindex = (r*map.tilemap.width)+c;
+          if (vindex >= 0 && vindex < visitmap.length){
+            return visitmap[vindex] === 1;
+          }
         }
-      });
+      } else if (visitmap !== null){
+        visitmap = null;
+      }
+      return true;
     };
 
     this.isVisible = function(c, r){
