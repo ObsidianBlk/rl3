@@ -69,6 +69,7 @@
     var background = null; // Background color (will autofill all transparent areas with this color)
     // NOTE: If the glyph itself is fully opaque, then background will have no visible effect (though it will still be "rendered").
     var dirty = false;
+    var softClear = false;
 
     this.set = function(g, options){
       options = (typeof(options) === typeof({})) ? options : {};
@@ -85,20 +86,32 @@
 
     this.resetDirtyState = function(){
       dirty = false;
+      if (softClear === true){
+        this.clear(true);
+      }
     };
 
-    this.clear = function(ignoreDirty){
-      if (glyph !== null || foreground !== null || background !== null){
-        dirty = (ignoreDirty === true) ? false : true;
+    this.clear = function(ignoreDirty, hardClear){
+      if (hardClear === true || softClear === true){
+        softClear = false;
+        if (glyph !== null || foreground !== null || background !== null){
+          dirty = (ignoreDirty === true) ? false : true;
+          glyph = null;
+          foreground = null;
+          background = null;
+        }
+      } else {
+        softClear = true;
       }
-      glyph = null;
-      foreground = null;
-      background = null;
     };
 
     Object.defineProperties(this, {
       "dirty":{
-	get:function(){return dirty;}
+	get:function(){return dirty || softClear;}
+      },
+
+      "softClear":{
+        get:function(){return softClear;}
       },
 
       "empty":{
@@ -115,6 +128,7 @@
 	    glyph = g;
 	    dirty = true;
 	  }
+          softClear = false;
 	}
       },
 
@@ -139,6 +153,7 @@
               dirty = true;
             }
 	  }
+          softClear = false;
 	}
       },
 
@@ -157,6 +172,7 @@
               dirty = true;
             }
 	  }
+          softClear = false;
 	}
       },
 
@@ -251,7 +267,7 @@
       } 
       for (var i=0; i < newCellCount; i++){
 	if (i < oldCellCount){
-	  cells[i].clear(true);
+	  cells[i].clear(true, true);
 	} else if (i >= oldCellCount){
 	  // Add new cell.
 	  cells.push(new Cell(i));
