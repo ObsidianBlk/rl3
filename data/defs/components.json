@@ -25,5 +25,7 @@
 
   "actor":{},
 
-  "player":{}
+  "player":{
+    "inControl":true
+  }
 }

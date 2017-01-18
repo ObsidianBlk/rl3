@@ -1,4 +1,3 @@
-
 (function (root, factory) {
   if (typeof define === 'function' && define.amd) {
     /* -------------------------------------------------
@@ -46,15 +45,18 @@
   }
 })(this, function (Emitter, World, Entity, GameMap, Shadowcaster) {
 
-  function Player(world){
-    var player = null;
-    var fov = null;
+  function Reticle(world){
+
+    var reticle = null;
     var map = null;
+    var cursor = null;
 
     Object.defineProperties(this, {
-      "fov":{
+      "enabled":{
         enumerable: true,
-        get:function(){return fov;}
+        get:function(){
+          return (reticle !== null) ? reticle.visual.visible : false;
+        }
       },
 
       "map":{
@@ -66,67 +68,63 @@
           }
           if (m !== map){
             map = m;
-            if (fov !== null){
-              fov.map = m;
-            } else if (m !== null){
-              fov = new Shadowcaster();
-              fov.map = m;
-            }
           }
         }
       },
 
-      "c":{
+      "cursor":{
         enumerable: true,
-        get:function(){return (player !== null) ? player.position.c : 0;}
-      },
-
-      "r":{
-        enumerable: true,
-        get:function(){return (player !== null) ? player.position.r : 0;}
+        get:function(){return cursor;},
+        set:function(c){
+          // TODO: Test for the correct object!!!
+          if (cursor !== c){
+            cursor = c;
+          }
+        }
       }
     });
     
     function OnNewEntity(e){
-      if (e !== player && e.type === "actor" && typeof(e.player) === typeof({})){
-        player = e;
-        fov = new Shadowcaster();
-        fov.trackVisits = true;
-        fov.radius = 10;
-        fov.col = player.position.c;
-        fov.row = player.position.r;
-        if (map !== null){
-          fov.map = map;
-          fov.generate();
+      if (e !== reticle && e.type === "actor" && typeof(e.reticle) === typeof({})){
+        reticle = e;
+        reticle.visual.visible = false;
+      }
+    }
+
+    function OnReticleMove(c, r){
+      if (reticle.visual.visible === true){
+        var oc = reticle.position.c;
+        var or = reticle.position.r;
+        world.emit("move-position", reticle, c, r);
+        if (map !== null && (reticle.position.c !== oc || reticle.position.r !== or)){
+          var tile = map.tilemap.getTile(reticle.position.c, reticle.position.r);
+          if (tile !== null && tile.description.trim() !== ""){
+            cursor.clear();
+            cursor.c = 0;
+            cursor.r = 1;
+            cursor.textOut(tile.description);
+          }
         }
       }
     }
 
-    function OnPlayerMove(c, r){
-      if (player !== null && player.player.inControl === true){
-        world.emit("move-position", player, c, r);
-        fov.col = player.position.c;
-        fov.row = player.position.r;
-        fov.generate();
-      }
-    }
-
-    
-
     function OnEnableReticle(c, r){
-      player.player.inControl = false;
+      reticle.visual.visible = true;
+      reticle.position.c = c;
+      reticle.position.r = r;
     }
 
     function OnDisableReticle(){
-      player.player.inControl = true;
+      reticle.visual.visible = false;
     }
 
-    world.on("add-entity", OnNewEntity);
-    world.on("player-move", OnPlayerMove);
+    world.on("player-move", OnReticleMove);
     world.on("enable-reticle", OnEnableReticle);
     world.on("disable-reticle", OnDisableReticle);
-  }
-  Player.prototype.constructor = Player;
+    world.on("add-entity", OnNewEntity);
+  };
+  Reticle.prototype.constructor = Reticle;
 
-  return Player;
+
+  return Reticle;
 });

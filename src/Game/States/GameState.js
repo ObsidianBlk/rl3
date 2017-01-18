@@ -14,6 +14,7 @@
       'src/R/Input/Keyboard',
       'src/Game/System/Navigation',
       'src/Game/System/Player',
+      'src/Game/System/Reticle',
       'src/Game/System/GameMap',
       'src/Game/System/Doors',
       'src/Game/System/FOV/Shadowcaster'
@@ -34,6 +35,7 @@
 	require('src/R/Input/Keyboard'),
         require('src/Game/System/Navigation'),
         require('src/Game/System/Player'),
+        require('src/Game/System/Reticle'),
         require('src/Game/System/GameMap'),
         require('src/Game/System/Doors'),
         require('src/Game/System/FOV/Shadowcaster')
@@ -68,13 +70,14 @@
 	root.R.Input.Keyboard,
         root.System.Navigation,
         root.System.Player,
+        root.System.Reticle,
         root.System.GameMap,
         root.System.Doors,
         root.Game.System.FOV.Shadowcaster
       );
     }
   }
-})(this, function (FSM, World, Entity, Terminal, Cursor, Tileset, Tilemap, Keyboard, Navigation, Player, GameMap, Doors, Shadowcaster) {
+})(this, function (FSM, World, Entity, Terminal, Cursor, Tileset, Tilemap, Keyboard, Navigation, Player, Reticle, GameMap, Doors, Shadowcaster) {
 
   var UI_WIDTH = 12;
   var DIALOG_HEIGHT = 6;
@@ -133,6 +136,7 @@
     var windex = map.tilemap.useTile(ts.get("wall"));
     map.tilemap.initialize("map", "map", 200, 200);
     map.tilemap.createRoom(0, 0, 15, 15, findex, windex);
+    map.tilemap.setTile(6, 7, windex);
     
     map.tilemap.createRoom(23, 0, 10, 30, findex, windex);
     map.tilemap.createCorridor(14, 5, 10, 0, findex, windex);
@@ -141,15 +145,19 @@
     var sysPlayer = new Player(world);
     sysPlayer.map = map;
 
+    var sysReticle = new Reticle(world);
+    sysReticle.map = map;
+
 
     world.registerSystem(new Navigation(world, map));
     world.registerSystem(sysPlayer);
+    world.registerSystem(sysReticle);
     world.registerSystem(new Doors(world, assembler));
     world.registerSystem(map, 0);
 
     (function(){
       var player = assembler.createEntity("actor", "human");
-      player.player = {};
+      assembler.db.addToEntity(player, "player");
       player.position.c = 1;
       player.position.r = 1;
       world.addEntity(player);
@@ -188,7 +196,11 @@
       } else if (Keyboard.CodeSameAsName(code, "right") === true){
         dc = 1;
       } else if (Keyboard.CodeSameAsName(code, "l") === true){
-        world.emit("toggle-reticle");
+        if (sysReticle.enabled === true){
+          world.emit("disable-reticle");
+        } else {
+          world.emit("enable-reticle", sysPlayer.c, sysPlayer.r);
+        }
       }
 
       if (dc !== 0 || dr !== 0){
@@ -241,6 +253,7 @@
       cursor_map = new Cursor(terminal);
       cursor_ui = new Cursor(terminal);
       cursor_dialog = new Cursor(terminal);
+      sysReticle.cursor = cursor_ui;
     };
 
     this.getFocus = function(){
@@ -262,6 +275,7 @@
     };
 
     this.exit = function(){
+      sysReticle.cursor = null;
       cursor_map = null;
       cursor_ui = null;
       cursor_dialog = null;

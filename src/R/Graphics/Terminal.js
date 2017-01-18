@@ -377,9 +377,9 @@
 	  }
 	  var sg = GetSubGlyph(code);
 	  cells[index].set(sg, options);
-          if (cells[index].dirty === true){
-            dcells.push(cells[index]);
-          }
+          //if (cells[index].dirty === true){
+          //  dcells.push(cells[index]);
+          //}
 	}
       }
     };
@@ -390,9 +390,9 @@
 	if (cells[index].glyphCode !== null){
 	  DropSubGlyph(cells[index].glyphCode);
 	  cells[index].clear();
-          if (cells[index].dirty === true){
-            dcells.push(cells[index]);
-          }
+          //if (cells[index].dirty === true){
+          //  dcells.push(cells[index]);
+          //}
 	}
       }
     };
@@ -408,9 +408,9 @@
 		if (code !== null){
 		  DropSubGlyph(code);
 		  cells[index].clear();
-                  if (cells[index].dirty === true){
-                    dcells.push(cells[index]);
-                  }
+                  //if (cells[index].dirty === true){
+                  //  dcells.push(cells[index]);
+                  //}
 		}
 	      }
 	    }
@@ -429,9 +429,9 @@
 	  if (code !== null){
 	    DropSubGlyph(code);
 	    cells[index].clear();
-            if (cells[index].dirty === true){
-              dcells.push(cells[index]);
-            }
+            //if (cells[index].dirty === true){
+            //  dcells.push(cells[index]);
+            //}
 	  }
 	}
       }
@@ -446,9 +446,9 @@
 	  if (code !== null){
 	    DropSubGlyph(code);
 	    cells[index].clear();
-            if (cells[index].dirty === true){
-              dcells.push(cells[index]);
-            }
+            //if (cells[index].dirty === true){
+            //  dcells.push(cells[index]);
+            //}
 	  }
 	}
       }
@@ -459,14 +459,79 @@
     };
 
     this.flip = function(){
-      if (glyph === null){return;}
+      if (glyph === null){return;}      
+      var defaultBG = new Color();
+      
+      var cw = glyph.cell_width;
+      var ch = glyph.cell_height;
+
+      var tint = new Color();
+      var color = new Color();
+      var mcolor = new Color();
+
+      var pixels = null;
+      var bpixels = null;
+      var pcount = 0;
+      var lastGlyphCode = null;
+
+      cells.forEach(function(cell){
+        if (cell.dirty){
+          cell.resetDirtyState();
+          
+          var x = (cell.index%columns)*cw;
+	  var y = Math.floor(cell.index/columns)*ch;
+
+	  if (cell.glyphCode !== null){ // Check to see if there's something to render.
+            if (cell.glyphCode !== lastGlyphCode){
+	      pixels = cell.glyph.pixels;
+              if (bpixels === null){
+                bpixels = cell.glyph.pixels;
+              }
+	      pcount = Math.floor(pixels.data.length/4);
+              lastGlyphCode = cell.glyphCode;
+            }
+            
+            var hasbg = cell.background !== null;
+	    if (cell.foreground !== null){
+              if (tint.eq(cell.foreground) === false){
+	        tint = new Color(cell.foreground);
+              }
+	    } else {tint.white();}
+
+
+	    for (var p=0; p < pcount; p++){
+              var index = p*4;
+	      color.set(
+                (hasbg) ? cell.background : defaultBG
+              ).blend(
+	        mcolor.setRGBA(
+		  pixels.data[index],
+		  pixels.data[index+1],
+		  pixels.data[index+2],
+		  pixels.data[index+3]
+	        ).multiply(tint)
+	      );
+
+	      bpixels.data[index] = color.r;
+	      bpixels.data[index+1] = color.g;
+	      bpixels.data[index+2] = color.b;
+	      bpixels.data[index+3] = color.a;
+	    }
+
+	    // Output the pixels
+            context.putImageData(bpixels, x, y);
+	  } else {
+	    // If there's no glyphCode, then this cell is empty. Simply clear it!
+	    context.clearRect(x, y, cw, ch);
+	  }
+        }
+      });
+    };
+
+    /*this.flip = function(){
+      if (glyph === null){return;}      
       var dclen = dcells.length;
       if (dclen <= 0){return;}
-      /*dcells.sort(function(ca, cb){
-        var cag = (ca.glyphCode === null) ? -1 : ca.glyphCode;
-        var cbg = (cb.glyphCode === null) ? -1 : cb.glyphCode;
-        return cag - cbg;
-      });*/
 
       var defaultBG = new Color();
       
@@ -498,19 +563,7 @@
             lastGlyphCode = cell.glyphCode;
           }
           
-	  
-	  /*if (cell.background !== null){
-	    var old = context.fillStyle;
-	    context.fillStyle = cell.background.hex;
-	    context.fillRect(x, y, cw, ch);
-	    context.fillStyle = old;
-	  } else {
-	    // If there's no background for this cell, and it's been changed, let's clear the old pixels out.
-	    context.clearRect(x, y, cw, ch);
-	  }
-
-	  var cpixels = context.getImageData(x, y, cw, ch);*/
-          
+	            
           var hasbg = cell.background !== null;
 	  if (cell.foreground !== null){
             if (tint.eq(cell.foreground) === false){
@@ -546,7 +599,7 @@
 	}
       }
       dcells.splice(0, dcells.length);
-    };
+    };*/
   }
   Terminal.prototype.__proto__ = Emitter.prototype;
   Terminal.prototype.constructor = Terminal;
