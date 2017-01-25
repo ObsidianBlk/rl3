@@ -73,9 +73,7 @@
 
     this.set = function(g, options){
       options = (typeof(options) === typeof({})) ? options : {};
-      if (this.glyph !== g){
-	this.glyph = g;
-      }
+      this.glyph = g;
       if (typeof(options.background) !== 'undefined'){
 	this.background = options.background;
       }
@@ -87,21 +85,25 @@
     this.resetDirtyState = function(){
       dirty = false;
       if (softClear === true){
-        this.clear(true);
+        clear(true);
       }
     };
 
+    function clear(ignoreDirty){
+      softClear = false;
+      dirty = (ignoreDirty === true) ? false : true;
+      glyph = null;
+      foreground = null;
+      background = null;
+    };
+
     this.clear = function(ignoreDirty, hardClear){
-      if (hardClear === true || softClear === true){
-        softClear = false;
-        if (glyph !== null || foreground !== null || background !== null){
-          dirty = (ignoreDirty === true) ? false : true;
-          glyph = null;
-          foreground = null;
-          background = null;
+      if (glyph !== null || foreground !== null || background !== null){
+        if (hardClear === true){
+          clear();
+        } else {
+          softClear = true;
         }
-      } else {
-        softClear = true;
       }
     };
 
@@ -125,8 +127,11 @@
 	set:function(g){
 	  // We're going to assume g is null or a sub-glyph object.
 	  if (g !== glyph){
-	    glyph = g;
-	    dirty = true;
+            if (glyph === null || (g.index !== glyph.index)){
+              // TODO: WHY is g and glyph not always the same object if their index matches... HMMMMMM!?!? ... Dumbass
+	      glyph = g;
+	      dirty = true;
+            }
 	  }
           softClear = false;
 	}
@@ -474,8 +479,10 @@
       var pcount = 0;
       var lastGlyphCode = null;
 
+      var renderedDirty = 0;
       cells.forEach(function(cell){
         if (cell.dirty){
+          renderedDirty += 1;
           cell.resetDirtyState();
           
           var x = (cell.index%columns)*cw;
@@ -523,83 +530,13 @@
 	  } else {
 	    // If there's no glyphCode, then this cell is empty. Simply clear it!
 	    context.clearRect(x, y, cw, ch);
+            //console.log("Clear cell");
 	  }
         }
       });
+
+      renderedDirty = renderedDirty;
     };
-
-    /*this.flip = function(){
-      if (glyph === null){return;}      
-      var dclen = dcells.length;
-      if (dclen <= 0){return;}
-
-      var defaultBG = new Color();
-      
-      var cw = glyph.cell_width;
-      var ch = glyph.cell_height;
-
-      var tint = new Color();
-      var color = new Color();
-      var mcolor = new Color();
-
-      var pixels = null;
-      var bpixels = null;
-      var pcount = 0;
-      var lastGlyphCode = null;
-      for (var c=0; c < dclen; c++){
-	var cell = dcells[c];
-	cell.resetDirtyState();
-
-	var x = (cell.index%columns)*cw;
-	var y = Math.floor(cell.index/columns)*ch;
-
-	if (cell.glyphCode !== null){ // Check to see if there's something to render.
-          if (cell.glyphCode !== lastGlyphCode){
-	    pixels = cell.glyph.pixels;
-            if (bpixels === null){
-              bpixels = cell.glyph.pixels;
-            }
-	    pcount = Math.floor(pixels.data.length/4);
-            lastGlyphCode = cell.glyphCode;
-          }
-          
-	            
-          var hasbg = cell.background !== null;
-	  if (cell.foreground !== null){
-            if (tint.eq(cell.foreground) === false){
-	      tint = new Color(cell.foreground);
-            }
-	  } else {tint.white();}
-
-
-	  for (var p=0; p < pcount; p++){
-            var index = p*4;
-	    color.set(
-              (hasbg) ? cell.background : defaultBG
-            ).blend(
-	      mcolor.setRGBA(
-		pixels.data[index],
-		pixels.data[index+1],
-		pixels.data[index+2],
-		pixels.data[index+3]
-	      ).multiply(tint)
-	    );
-
-	    bpixels.data[index] = color.r;
-	    bpixels.data[index+1] = color.g;
-	    bpixels.data[index+2] = color.b;
-	    bpixels.data[index+3] = color.a;
-	  }
-
-	  // Output the pixels
-          context.putImageData(bpixels, x, y);
-	} else {
-	  // If there's no glyphCode, then this cell is empty. Simply clear it!
-	  context.clearRect(x, y, cw, ch);
-	}
-      }
-      dcells.splice(0, dcells.length);
-    };*/
   }
   Terminal.prototype.__proto__ = Emitter.prototype;
   Terminal.prototype.constructor = Terminal;

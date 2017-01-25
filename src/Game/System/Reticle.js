@@ -100,8 +100,8 @@
           var tile = map.tilemap.getTile(reticle.position.c, reticle.position.r);
           if (tile !== null && tile.description.trim() !== ""){
             cursor.clear();
-            cursor.c = 0;
-            cursor.r = 1;
+            cursor.c = 1;
+            cursor.r = 5;
             cursor.textOut(tile.description);
           }
         }
