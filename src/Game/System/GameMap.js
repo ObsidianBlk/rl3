@@ -7,6 +7,7 @@
     define([
       'src/R/System/Emitter',
       'src/R/Graphics/Cursor',
+      'src/R/Graphics/Color',
       'src/R/Map/Tilemap',
       'src/R/ECS/World',
       'src/R/ECS/Entity',
@@ -20,6 +21,7 @@
       module.exports = factory(
         require('src/R/System/Emitter'),
 	require('src/R/Graphics/Cursor'),
+	require('src/R/Graphics/Color'),
         require('src/R/Map/Tilemap'),
         require('src/R/ECS/World'),
         require('src/R/ECS/Entity'),
@@ -40,6 +42,7 @@
       root.System.GameMap = factory(
         root.R.System.Emitter,
 	root.R.Graphics.Cursor,
+	root.R.Graphics.Color,
         root.R.Map.Tilemap,
         root.R.ECS.World,
         root.R.ECS.Entity,
@@ -47,7 +50,7 @@
       );
     }
   }
-})(this, function (Emitter, Cursor, Tilemap, World, Entity, Assembler) {
+})(this, function (Emitter, Cursor, Color, Tilemap, World, Entity, Assembler) {
 
 
   function GameMap(world){
@@ -204,14 +207,17 @@
                 }
                 return false;
               });
-              if (v.length > 0){  
-                cursor.set(v[0].visual.primeglyph, Cursor.WRAP_TYPE_CHARACTER, {
-                  foreground: v[0].visual.tint,
-                  background: v[0].visual.background
-                });
-              } else {
-                cursor.set(gindex, Cursor.WRAP_TYPE_CHARACTER, opts);
+	      if (v.length > 0){
+		gindex = v[0].visual.primeglyph;
+		if (visible === true){
+		  opts.foreground = new Color(v[0].visual.tint);
+		  opts.background = new Color(v[0].visual.background);
+		} else {
+		  opts.foreground = (new Color(v[0].visual.tint)).scaled(0.5);
+		  opts.background = (new Color(v[0].visual.background)).scaled(0.5);
+		}
               }
+              cursor.set(gindex, Cursor.WRAP_TYPE_CHARACTER, opts);
               /*
                 ---------------------------------------------
               */

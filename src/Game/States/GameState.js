@@ -213,8 +213,8 @@
       cursor_map.region = {
 	left: 0,
 	top: 0,
-	right: newres[0]-UI_WIDTH,
-	bottom: newres[1]-DIALOG_HEIGHT
+	right: newres[0]-(UI_WIDTH+1),
+	bottom: newres[1]-(DIALOG_HEIGHT+1)
       };
 
       cursor_ui.region = {
@@ -291,13 +291,17 @@
           Render();
         }
         
-	if (lastDigitSize > 0){
-	  cursor_dialog.clearRegion(19, 1, lastDigitSize, 1);
-	}
+	//if (lastDigitSize > 0){
+	//  cursor_dialog.clearRegion(19, 1, lastDigitSize, 1);
+	//}
 	cursor_dialog.c = 19;
 	cursor_dialog.r = 1;
-	cursor_dialog.textOut(fps.toString());
-	lastDigitSize = fps.toString().length;
+	var fpsstr = fps.toString();
+	if (fpsstr.length < 2){
+	  fpsstr += " ";
+	}
+	cursor_dialog.textOut(fpsstr);
+	//lastDigitSize = fps.toString().length;
       }
     };
 
