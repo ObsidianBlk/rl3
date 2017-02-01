@@ -28,7 +28,7 @@
     "description":"A small trinket",
     "weight":0.01,
     "volume":0.01,
-    "stackSize": 0,
+    "stackSize": 0
   },
 
   "actor":{},

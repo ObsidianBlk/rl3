@@ -17,6 +17,7 @@
       'src/Game/System/Reticle',
       'src/Game/System/GameMap',
       'src/Game/System/Doors',
+      'src/Game/System/Dialog',
       'src/Game/System/FOV/Shadowcaster'
     ], factory);
   } else if (typeof exports === 'object') {
@@ -38,6 +39,7 @@
         require('src/Game/System/Reticle'),
         require('src/Game/System/GameMap'),
         require('src/Game/System/Doors'),
+        require('src/Game/System/Dialog'),
         require('src/Game/System/FOV/Shadowcaster')
       );
     }
@@ -73,11 +75,12 @@
         root.System.Reticle,
         root.System.GameMap,
         root.System.Doors,
+        root.System.Dialog,
         root.Game.System.FOV.Shadowcaster
       );
     }
   }
-})(this, function (FSM, World, Entity, Terminal, Cursor, Tileset, Tilemap, Keyboard, Navigation, Player, Reticle, GameMap, Doors, Shadowcaster) {
+})(this, function (FSM, World, Entity, Terminal, Cursor, Tileset, Tilemap, Keyboard, Navigation, Player, Reticle, GameMap, Doors, Dialog, Shadowcaster) {
 
   var UI_WIDTH = 12;
   var DIALOG_HEIGHT = 6;
@@ -148,8 +151,11 @@
     var sysReticle = new Reticle(world);
     sysReticle.map = map;
 
+    var sysDialog = new Dialog(world);
+
 
     world.registerSystem(new Navigation(world, map));
+    world.registerSystem(sysDialog);
     world.registerSystem(sysPlayer);
     world.registerSystem(sysReticle);
     world.registerSystem(new Doors(world, assembler));
@@ -197,13 +203,20 @@
         dc = 1;
       } else if (Keyboard.CodeSameAsName(code, "l") === true){
         if (sysReticle.enabled === true){
+          world.emit("dialog-system", "Reticle Disabled");
           world.emit("disable-reticle");
         } else {
+          world.emit("dialog-system", "Reticle Enabled");
           world.emit("enable-reticle", sysPlayer.c, sysPlayer.r);
         }
       }
 
       if (dc !== 0 || dr !== 0){
+        if (sysReticle.enabled){
+          world.emit("dialog-npc", "The reticle has moved (" + dc + ", " + dr + ")", "Reticle");
+        } else {
+          world.emit("dialog-player", "The player has moved (" + dc + ", " + dr + ")", "Player");
+        }
         world.emit("player-move", dc, dr);
       }
       updateMap = true;
@@ -234,9 +247,9 @@
     }
 
     function Render(){
-      cursor_dialog.c = 0;
-      cursor_dialog.r = 1;
-      cursor_dialog.textOut("Frames Per Second:");
+      //cursor_dialog.c = 0;
+      //cursor_dialog.r = 1;
+      //cursor_dialog.textOut("Frames Per Second:");
 
       cursor_map.c = 0;
       cursor_map.r = 0;
@@ -254,6 +267,7 @@
       cursor_ui = new Cursor(terminal);
       cursor_dialog = new Cursor(terminal);
       sysReticle.cursor = cursor_ui;
+      sysDialog.cursor = cursor_dialog;
     };
 
     this.getFocus = function(){
@@ -276,6 +290,7 @@
 
     this.exit = function(){
       sysReticle.cursor = null;
+      sysDialog.cursor = null;
       cursor_map = null;
       cursor_ui = null;
       cursor_dialog = null;
@@ -294,13 +309,13 @@
 	//if (lastDigitSize > 0){
 	//  cursor_dialog.clearRegion(19, 1, lastDigitSize, 1);
 	//}
-	cursor_dialog.c = 19;
+	/*cursor_dialog.c = 19;
 	cursor_dialog.r = 1;
 	var fpsstr = fps.toString();
 	if (fpsstr.length < 2){
 	  fpsstr += " ";
 	}
-	cursor_dialog.textOut(fpsstr);
+	cursor_dialog.textOut(fpsstr);*/
 	//lastDigitSize = fps.toString().length;
       }
     };
