@@ -73,11 +73,12 @@
         {name:"physical", type:tobj},
         {name:"stateswitch", type:tobj}
       ])){
-        var nent = assembler.createEntity("door", actee.stateswitch.nextState);
+	assembler.mimicEntity("door", actee.stateswitch.next, actee);
+        /*var nent = assembler.createEntity("door", actee.stateswitch.nextState);
         world.removeEntity(actee);
         nent.position.c = actee.position.c;
         nent.position.r = actee.position.r;
-        world.addEntity(nent);
+        world.addEntity(nent);*/
       }
     }
 

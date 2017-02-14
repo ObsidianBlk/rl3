@@ -133,7 +133,7 @@
     this.createEntity = function(type, name){
       var e = null;
       if (type in assemblage){
-	if (name in assemblage[type]){
+	if (name in assemblage[type] && name.substring(0, 1) !== "_"){
 	  e = new Entity(prng.generateUUID(), type);
 	  var compdef = assemblage[type][name];
 	  if (compdef !== null){
@@ -147,6 +147,17 @@
 	}
       }
       return e;
+    };
+
+    this.mimicEntity = function(type, name, e){
+      if (!(e instanceof Entity)){
+	throw new TypeError("Expected Entity object instance.");
+      }
+      if (type in assemblage){
+	if (name in assemblage[type]){
+	  Entity.SetValues(e, assemblage[type][name], true);
+	}
+      }
     };
 
     this.serialize = function(){

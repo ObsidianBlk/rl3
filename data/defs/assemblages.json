@@ -29,7 +29,30 @@
   },
 
   "door":{
-    "door_opened":{
+    "_open":{
+      "visual":{"primeglyph":8},
+      "physical":{
+	"moveability": 1.0,
+	"visibility": 1.0
+      },
+      "stateswitch":{
+	"next":"_closed"
+      }
+    },
+
+    "_closed":{
+      "visual":{"primeglyph":10},
+      "physical":{
+	"moveability": 0.0,
+	"visibility": 0.0
+      },
+      "stateswitch":{
+	"next":"_open"
+      }
+    },
+
+    
+    "wooden_door":{
       "visual":{
         "primeglyph": 8,
         "tint": "#a58740"
@@ -40,19 +63,7 @@
         "visibility": 1.0
       },
       "stateswitch":{
-        "nextState": "door_closed"
-      }
-    },
-
-    "door_closed":{
-      "visual":{
-        "primeglyph": 10,
-        "tint": "#a58740"
-      },
-      "position":null,
-      "physical":null,
-      "stateswitch":{
-        "nextState":"door_opened"
+        "next": "_closed"
       }
     }
   }

@@ -20,7 +20,7 @@
   },
 
   "stateswitch":{
-    "nextState":""
+    "next":""
   },
 
   "item":{

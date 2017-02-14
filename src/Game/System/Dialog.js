@@ -62,6 +62,10 @@
       }
     });
 
+    this.render = function(){
+      RenderHistory();
+    };
+
     function RenderHistory(){
       if (cursor === null){return;}
       // TODO: Figure out a faster way.

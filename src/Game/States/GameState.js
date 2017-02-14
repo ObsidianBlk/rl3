@@ -82,8 +82,8 @@
   }
 })(this, function (FSM, World, Entity, Terminal, Cursor, Tileset, Tilemap, Keyboard, Navigation, Player, Reticle, GameMap, Doors, Dialog, Shadowcaster) {
 
-  var UI_WIDTH = 12;
-  var DIALOG_HEIGHT = 6;
+  var UI_WIDTH = 24;
+  var DIALOG_HEIGHT = 12;
 
   function GameState(terminal, keyboard, fsm, assembler, setActive){
     if (!(terminal instanceof Terminal)){
@@ -96,9 +96,13 @@
     var focus = false;
     //var cursor = null;
 
+    var cursor_full = null;
     var cursor_map = null;
     var cursor_ui = null;
     var cursor_dialog = null;
+
+    var Cols = 0;
+    var Rows = 0;
     
     var updateMap = true;
 
@@ -172,7 +176,8 @@
       reticle.reticle = {};
       world.addEntity(reticle);
 
-      var door = assembler.createEntity("door", "door_closed");
+      var door = assembler.createEntity("door", "wooden_door");
+      assembler.mimicEntity("door", "_closed", door);
       door.position.c = 14;
       door.position.r = 5;
       world.addEntity(door);
@@ -223,34 +228,115 @@
     };
 
     function onRenderResize(newres, oldres){
-      cursor_map.region = {
-	left: 0,
+      Cols = newres[0];
+      Rows = newres[1];
+      
+      cursor_full.region = {
+	left:0,
 	top: 0,
-	right: newres[0]-(UI_WIDTH+1),
-	bottom: newres[1]-(DIALOG_HEIGHT+1)
+	right: Cols-1,
+	bottom: Rows-1
+      };
+      
+      cursor_map.region = {
+	left: 1,
+	top: 1,
+	right: Cols-(UI_WIDTH+3),
+	bottom: Rows-(DIALOG_HEIGHT+3)
       };
 
       cursor_ui.region = {
-        left: newres[0] - UI_WIDTH,
-        top: 0,
-        right: newres[0]-1,
-        bottom: newres[1]-DIALOG_HEIGHT
+        left: Cols - (UI_WIDTH+1),
+        top: 1,
+        right: Cols-2,
+        bottom: Rows-(DIALOG_HEIGHT+3)
       };
 
       cursor_dialog.region = {
-        left: 0,
-        top: newres[1]-DIALOG_HEIGHT,
-        right: newres[0]-1,
-        bottom: newres[1]-1
+        left: 1,
+        top: Rows-(DIALOG_HEIGHT+1),
+        right: Cols-2,
+        bottom: Rows-2
       };
+      RenderFrame();
       Render();
+      sysDialog.render();
+    }
+
+    function DrawFrame(cur, c, r, w, h){
+      var gh = 196;
+      var gv = 179;
+      var gul = 218;
+      var gll = 192;
+      var gur = 191;
+      var glr = 217;
+      
+      for (var _c=c; _c < c+w; _c++){
+	cur.c = _c;
+	cur.r = r;
+	cur.set(gh);
+
+	cur.c = _c;
+	cur.r = (r+h)-1;
+	cur.set(gh);
+      }
+
+      for (var _r=r+1; _r < (r+h)-1; _r++){
+	cur.c = c;
+	cur.r = _r;
+	cur.set(gv);
+
+	cur.c = (c+w)-1;
+	cur.r = _r;
+	cur.set(gv);
+      }
+
+      cur.c = c;
+      cur.r = r;
+      cur.set(gul);
+
+      cur.c = (c+w)-1;
+      cur.r = r;
+      cur.set(gur);
+
+      cur.c = c;
+      cur.r = (r+h)-1;
+      cur.set(gll);
+
+      cur.c = (c+w)-1;
+      cur.r = (r+h)-1;
+      cur.set(glr);
+    }
+
+    function RenderFrame(){
+      var gtl = 180;
+      var gtr = 195;
+      var gtu = 193;
+      var gtd = 194;
+      var gx = 197;
+
+      DrawFrame(cursor_full, 0, 0, Cols-(UI_WIDTH+1), Rows-(DIALOG_HEIGHT+1));
+      DrawFrame(cursor_full, Cols-(UI_WIDTH+2), 0, UI_WIDTH+2, Rows-(DIALOG_HEIGHT+1));
+      DrawFrame(cursor_full, 0, Rows-(DIALOG_HEIGHT+2), Cols, DIALOG_HEIGHT+2);
+
+      cursor_full.c = Cols - (UI_WIDTH+2);
+      cursor_full.r = 0;
+      cursor_full.set(gtd);
+
+      cursor_full.c = Cols - (UI_WIDTH+2);
+      cursor_full.r = Rows-(DIALOG_HEIGHT+2);
+      cursor_full.set(gtu);
+
+      cursor_full.c = 0;
+      cursor_full.r = Rows-(DIALOG_HEIGHT+2);
+      cursor_full.set(gtr);
+
+      cursor_full.c = Cols-1;
+      cursor_full.r = Rows-(DIALOG_HEIGHT+2);
+      cursor_full.set(gtl);
     }
 
     function Render(){
-      //cursor_dialog.c = 0;
-      //cursor_dialog.r = 1;
-      //cursor_dialog.textOut("Frames Per Second:");
-
       cursor_map.c = 0;
       cursor_map.r = 0;
       if (map instanceof GameMap){
@@ -263,6 +349,7 @@
     }
 
     this.enter = function(){
+      cursor_full = new Cursor(terminal);
       cursor_map = new Cursor(terminal);
       cursor_ui = new Cursor(terminal);
       cursor_dialog = new Cursor(terminal);
@@ -274,9 +361,10 @@
       terminal.on("renderResize", onRenderResize);
       keyboard.onCombo("ctrl+shift+esc", onExitCombo);
       keyboard.on("keyup", onKeyUp);
-      cursor_map.clear();
-      cursor_ui.clear();
-      cursor_dialog.clear();
+      cursor_full.clear(); // This will clear the entire screen.
+      //cursor_map.clear();
+      //cursor_ui.clear();
+      //cursor_dialog.clear();
       onRenderResize([terminal.columns, terminal.rows], null);
       focus = true;
     };
@@ -291,6 +379,7 @@
     this.exit = function(){
       sysReticle.cursor = null;
       sysDialog.cursor = null;
+      cursor_full = null;
       cursor_map = null;
       cursor_ui = null;
       cursor_dialog = null;

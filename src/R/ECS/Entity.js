@@ -103,27 +103,31 @@
   }
   Entity.prototype.constructor = Entity;
 
-  function ObjToObjValueCopy(dst, src){
+  function ObjToObjValueCopy(dst, src, keyExistsDst){
     // Function assumes dst and src are both Object instances.
     // NOTE: NO value can be set to NULL!
+    keyExistsDst = (keyExistsDst === true);
+    
     for (var key in dst){
       var keytype = typeof(dst[key]);
       if (src.hasOwnProperty(key) === true && src[key] !== null){
-	if (dst[key] === null || keytype === typeof(src[key])){
-          keytype = (dst[key] === null) ? typeof(src[key]) : keytype;
-	  if (keytype === typeof({})) {
-	    ObjToObjValueCopy(dst[key], src[key]);
-	  } else if (keytype === typeof([])){
-	    dst[key] = JSON.parse(JSON.stringify(src[key]));
-	  } else if (keytype === 'number' || keytype === 'string' || keytype === 'boolean'){
-	    dst[key] = src[key];
+	if (keyExistsDst === false || (keyExistsDst === true && dst.hasOwnProperty(key) === true)){
+	  if (dst[key] === null || keytype === typeof(src[key])){
+            keytype = (dst[key] === null) ? typeof(src[key]) : keytype;
+	    if (keytype === typeof({})) {
+	      ObjToObjValueCopy(dst[key], src[key], keyExistsDst);
+	    } else if (keytype === typeof([])){
+	      dst[key] = JSON.parse(JSON.stringify(src[key]));
+	    } else if (keytype === 'number' || keytype === 'string' || keytype === 'boolean'){
+	      dst[key] = src[key];
+	    }
 	  }
 	}
       }
     }
   }
 
-  Entity.SetValues = function(e, vdata){
+  Entity.SetValues = function(e, vdata, keyExistsEntity){
     if (!(e instanceof Entity)){
       throw new TypeError("Operation requires an Entity object instance.");
     }
@@ -134,7 +138,7 @@
     for (var key in e){
       if (key !== "id" && key !== "type" && key !== "valid" && key !== "container"){
 	if (vdata.hasOwnProperty(key) && vdata[key] !== null && typeof(vdata[key]) === typeof({})){
-	  ObjToObjValueCopy(e[key], vdata[key]);
+	  ObjToObjValueCopy(e[key], vdata[key], keyExistsEntity === true);
 	}
       }
     }
