@@ -135,6 +135,9 @@
     });
 
 
+    // 0 = Default mode. 1 = "Interact" mode.
+    var inputMode = 0;
+
     
     var world = new World();
     var map = new GameMap(world);
@@ -198,31 +201,59 @@
     function onKeyUp(code){
       var dc = 0;
       var dr = 0;
-      if (Keyboard.CodeSameAsName(code, "up") === true){
-        dr = -1;
-      } else if (Keyboard.CodeSameAsName(code, "down") === true){
-        dr = 1;
-      } else if (Keyboard.CodeSameAsName(code, "left") === true){
-        dc = -1;
-      } else if (Keyboard.CodeSameAsName(code, "right") === true){
-        dc = 1;
-      } else if (Keyboard.CodeSameAsName(code, "l") === true){
-        if (sysReticle.enabled === true){
-          world.emit("dialog-system", "Reticle Disabled");
-          world.emit("disable-reticle");
-        } else {
-          world.emit("dialog-system", "Reticle Enabled");
-          world.emit("enable-reticle", sysPlayer.c, sysPlayer.r);
+      if (inputMode === 0){
+        if (Keyboard.CodeSameAsName(code, "up") === true){
+          dr = -1;
+        } else if (Keyboard.CodeSameAsName(code, "down") === true){
+          dr = 1;
+        } else if (Keyboard.CodeSameAsName(code, "left") === true){
+          dc = -1;
+        } else if (Keyboard.CodeSameAsName(code, "right") === true){
+          dc = 1;
+        } else if (Keyboard.CodeSameAsName(code, "l") === true){
+          if (sysReticle.enabled === true){
+            world.emit("dialog-message", "Reticle Disabled");
+            world.emit("disable-reticle");
+          } else {
+            world.emit("dialog-message", "Reticle Enabled");
+            world.emit("enable-reticle", sysPlayer.c, sysPlayer.r);
+          }
+        } else if (Keyboard.CodeSameAsName(code, "i") === true){
+          inputMode = 1;
         }
-      }
 
-      if (dc !== 0 || dr !== 0){
-        if (sysReticle.enabled){
-          world.emit("dialog-npc", "The reticle has moved (" + dc + ", " + dr + ")", "Reticle");
-        } else {
-          world.emit("dialog-player", "The player has moved (" + dc + ", " + dr + ")", "Player");
+        if (dc !== 0 || dr !== 0){
+          if (sysReticle.enabled){
+            world.emit("dialog-message", "The reticle has moved (" + dc + ", " + dr + ")", {originator: "Reticle", tint:"#FA0"});
+          } else {
+            world.emit("dialog-message", "The player has moved (" + dc + ", " + dr + ")", {originator:"Player", tint:"#0AF"});
+          }
+          world.emit("player-move", dc, dr);
         }
-        world.emit("player-move", dc, dr);
+      } else if (inputMode === 1){
+        if (Keyboard.CodeSameAsName(code, "q") === true){
+          sysPlayer.doInteraction(0);
+        } else if (Keyboard.CodeSameAsName(code, "w") === true){
+          sysPlayer.doInteraction(1);
+        } else if (Keyboard.CodeSameAsName(code, "e") === true){
+          sysPlayer.doInteraction(2);
+        } else if (Keyboard.CodeSameAsName(code, "d") === true){
+          sysPlayer.doInteraction(3);
+        } else if (Keyboard.CodeSameAsName(code, "c") === true){
+          sysPlayer.doInteraction(4);
+        } else if (Keyboard.CodeSameAsName(code, "x") === true){
+          sysPlayer.doInteraction(5);
+        } else if (Keyboard.CodeSameAsName(code, "z") === true){
+          sysPlayer.doInteraction(6);
+        } else if (Keyboard.CodeSameAsName(code, "a") === true){
+          sysPlayer.doInteraction(7);
+        } else if (Keyboard.CodeSameAsName(code, "s") === true){
+          sysPlayer.doInteraction(8);
+        }
+        inputMode = 0;
+
+      } else { // This should never happen.
+        inputMode = 0;
       }
       updateMap = true;
     };

@@ -71,8 +71,8 @@
       // TODO: Figure out a faster way.
       cursor.clear();
       var r = 0;
-      for (var i=hindex; i<(hindex + cursor.columns); i++){
-        if (i >= history.length){break;}// Technically should never happen
+      for (var i=hindex; i<(hindex + cursor.rows); i++){
+        if (i >= history.length){break;}
         cursor.c = 0;
         cursor.r = r;
         if (typeof(history[i].originator) === 'string'){
@@ -108,34 +108,28 @@
       return lines;
     };
 
-    function OnDialog(type, msg, originator){
+    function OnDialog(msg, options){
+      // WARNING: This method does not take into account resizing the terminal!!! Should store original messages seperately.
+
       if (cursor == null){return;}
+      options = (typeof(options) === typeof({})) ? options : {};
+      
       var lines = null;
-      if (originator === null){
-        lines = BreakMsg(msg);
+      if (typeof(options.originator) === 'string'){
+        lines = BreakMsg("[" + options.originator + "] " + msg);
       } else {
-        lines = BreakMsg("[" + originator + "] " + msg);
-      }
-      if (lines.length > 0 && originator !== null){
-        lines[0] = lines[0].substr(originator.length+2);
+        lines = BreakMsg(msg);
       }
 
-      var tint = "#fff";
-      switch(type){
-      case 1: // "NPC"
-        tint = "#FF0"; break;
-      case 2: // "Player"
-        tint = "#06A";
-      }
+      // TODO: Test this is a valid RGB Hex color.
+      var tint = (typeof(options.tint) === 'string') ? options.tint : "#FFF";
 
       for (var l=0; l < lines.length; l++){
+        // TODO: THIS BETTER!
         var mo = {
           tint: tint,
           msg: lines[l]
         };
-        if (originator !== null){
-          mo.originator = originator;
-        }
         history.splice(0, 0, mo);
         if (hindex > 0){
           hindex ++;
@@ -145,9 +139,7 @@
       RenderHistory();
     };
     
-    world.on("dialog-system", function(msg){OnDialog(0, msg, null);});
-    world.on("dialog-npc", function(msg, originator){OnDialog(1, msg, originator);});
-    world.on("dialog-player", function(msg, originator){OnDialog(2, msg, originator);});
+    world.on("dialog-message", OnDialog);
   }
   Dialog.prototype.constructor = Dialog;
 

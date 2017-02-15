@@ -86,6 +86,51 @@
         get:function(){return (player !== null) ? player.position.r : 0;}
       }
     });
+
+    this.doInteraction = function(direction){
+      if (player === null || map === null){return;} // Early out.
+      var pc = player.position.c;
+      var pr = player.position.r;
+      switch(direction){
+      case 0:
+        pc -= 1;
+        pr -= 1;
+        break;
+      case 1:
+        pr -= 1;
+        break;
+      case 2:
+        pc += 1;
+        pr -= 1;
+        break;
+      case 3:
+        pc += 1;
+        break;
+      case 4:
+        pc += 1;
+        pr += 1;
+        break;
+      case 5:
+        pr += 1;
+        break;
+      case 6:
+        pc -= 1;
+        pr += 1;
+        break;
+      case 7:
+        pc -= 1;
+        break;
+      case 8:
+      }
+      
+      var ents = map.getEntities(pc, pr).filter(function(e){
+        return e.physical.collidable === true;
+      });
+      // TODO: A menu should appear if there are more than one interactable item.
+      if (ents.length > 0){
+        world.emit("interact", player, ents[0]);
+      }
+    };
     
     function OnNewEntity(e){
       if (e !== player && e.type === "actor" && typeof(e.player) === typeof({})){
@@ -104,10 +149,16 @@
 
     function OnPlayerMove(c, r){
       if (player !== null && player.player.inControl === true){
+        var oc = player.position.c;
+        var or = player.position.r;
         world.emit("move-position", player, c, r);
-        fov.col = player.position.c;
-        fov.row = player.position.r;
-        fov.generate();
+        if (oc !== player.position.c || or !== player.position.r){
+          fov.col = player.position.c;
+          fov.row = player.position.r;
+          fov.generate();
+        } else {
+          world.emit("dialog-message", "OUCH!", {originator:"You", tint:"#F00"});
+        }
       }
     }
 
