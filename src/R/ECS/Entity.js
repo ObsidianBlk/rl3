@@ -91,13 +91,13 @@
       "id":{
 	value:id,
 	writable:false,
-	enumerable:false
+	enumerable:true
       },
 
       "type":{
 	value:type,
 	writable:false,
-	enumerable:false
+	enumerable:true
       }
     });
   }
@@ -145,7 +145,11 @@
   };
 
   Entity.Exists = function(id){
-    return (EntityDB._ids.filter(function(eid){return eid === id;}).length > 0);
+    for (var i=0; i < EntityDB._ids.length; i++){
+      if (EntityDB._ids[i] === id){return true;}
+    }
+    return false;
+    //return (EntityDB._ids.filter(function(eid){return eid === id;}).length > 0);
   };
 
   Entity.Get = function(container, id, type){
