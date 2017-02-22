@@ -91,12 +91,14 @@
       "id":{
 	value:id,
 	writable:false,
+        configurable:false,
 	enumerable:true
       },
 
       "type":{
 	value:type,
 	writable:false,
+        configurable:false,
 	enumerable:true
       }
     });

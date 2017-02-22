@@ -74,6 +74,82 @@
   Collection Class
   ------------------------------------------------------------------------------------------------------------------------- */
 
+  function GenerateUUID(){
+    // This method's operations are from StackOverflow response by...
+    // broofa ... ( http://stackoverflow.com/questions/105034/create-guid-uuid-in-javascript )
+    var uniform = Math.random;
+
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      var r = Math.floor(uniform()*16)|0, v = (c == 'x') ? r : (r&0x3|0x8);
+      return v.toString(16);
+    });
+  };
+  
+
+  function TestObjKeyValue(obj, key, value){
+    var keys = key.split(".");
+    var found = true;
+    var o = obj;
+    for (var k = 0; k < keys.length; k++){
+      found = o.hasOwnProperty[keys[k]];
+      if (found === false){break;}
+      o = o[keys[k]];
+    }
+
+    if (found === true){
+      if (value.constructor === Object){
+        if ("&gt;" in value){
+          if (typeof(o) === 'number'){
+            return o > value["&gt;"];
+          }
+        } else if ("&gte;" in value){
+          if (typeof(o) === 'number'){
+            return o >= value["&gte;"];
+          }
+        } else if ("&lt;" in value){
+          if (typeof(o) === 'number'){
+            return o < value["&lt;"];
+          }
+        } else if ("&lte;" in value){
+          if (typeof(o) === 'number'){
+            return o <= value["&lte;"];
+          }
+        } else if ("&ne;" in value){
+          return o !== value["&ne;"];
+        } else if ("&len;" in value){
+          if (typeof(o) === 'string' || o.constructor === Array){
+            return o.length === value["&len;"];
+          }
+        } else if ("&lengt;" in value){
+          if (typeof(o) === 'string' || o.constructor === Array){
+            return o.length > value["&lengt;"];
+          }
+        } else if ("&lengte;" in value){
+          if (typeof(o) === 'string' || o.constructor === Array){
+            return o.length >= value["&lengte;"];
+          }
+        } else if ("&lenlt;" in value){
+          if (typeof(o) === 'string' || o.constructor === Array){
+            return o.length < value["&lenlt;"];
+          }
+        } else if ("&lenlte;" in value){
+          if (typeof(o) === 'string' || o.constructor === Array){
+            return o.length <= value["&lenlte;"];
+          }
+        } else if ("&lenne;" in value){
+          if (typeof(o) === 'string' || o.constructor === Array){
+            return o.length !== value["&lenne;"];
+          }
+        }
+      } else {
+        // TODO: What to do about Array values... Hmmmm???
+        return (o === value);
+      }
+    }
+    return false;
+  }
+  
+
   function Collection(parent, name){
     if (! (parent instanceof ODB)){
       throw new TypeError("Collection given invalid parent.");
@@ -81,7 +157,7 @@
     if (parent.collection(name) !== null){
       throw new Error("Collection can only be created from an ODB instance. Cannot directly instantiate.");
     }
-    var coll = [];
+    var data = {};
 
     Object.defineProperties(this, {
       "name":{
@@ -99,10 +175,10 @@
       },
 
       "length":{
-	value: coll.length,
-	writable: false,
-	configurable: false,
-	enumerable: false
+	enumerable: false,
+        get:function(){
+          return Object.keys(data).length;
+        }
       }
     });
 
@@ -110,6 +186,22 @@
       if (rec === null || typeof(rec) === 'undefined'){
 	throw new Error("Invalid Record Type");
       }
+      if (rec.constructor === Array){
+        try {
+          var res = [];
+          for (var r=0; r < rec.length; r++){
+            try {
+              res.push(this.add(rec[r]));
+            } catch (e) {
+              throw e;
+            }
+          }
+          return res;
+        } catch (e) {
+          throw e;
+        }
+      }
+      
       var type = rec.constructor.name;
       if (type !== Object.name){
 	if (!parent.ctypes.defined(type)){
@@ -118,25 +210,93 @@
 	rec = parent.ctypes.record(rec);
       }
 
-      coll.push({
+      var uuid = GenerateUUID();
+      data[uuid] = {
 	type: type,
-	record: rec
-      });
+	record: JSON.parse(JSON.stringify(rec))
+      };
 
-      return coll.length-1;
+      return uuid;
     };
 
+    /*
+      desc [Object]
+      Object definition...
+      {
+        "key":value
+      }
+     */
     this.find = function(desc){
+      var rec = [];
+      if (desc.constructor === Object){
+        var desckeys = Object.keys(desc);
+        var datkeys = Object.keys(data);
 
+        for (var i=0; i < datkeys.length; i++){
+          var ent = data[datkeys[i]];
+          var found = true;
+          for (var k=0; k < desckeys.length; k++){
+            var key = desckeys[k];
+            if (key === "_id" && desc[key] !== datkeys[i]){
+              found = false; break;
+            } else if (key === "_type" && ent.type !== desc[key]){
+              found = false; break;
+            } else if(TestObjKeyValue(ent.record, key, desc[key]) === false){
+              found = false; break;
+            }
+          }
+
+          if (found === true){
+            if (ent.type !== Object.constructor.name){
+              try {
+                rec.push(parent.ctypes.object(rec.record));
+              } catch (e) {
+                throw e;
+              }
+            } else {
+              rec.push(JSON.parse(JSON.stringify(rec.record)));
+            }
+          }
+        }
+      } else {
+        throw new TypeError("Expected Object instance.");
+      }
+      return rec;
     };
 
     this.remove = function(desc){
+      var removed = 0;
+      if (desc.constructor === Object){
+        var desckeys = Object.keys(desc);
+        var datkeys = Object.keys(data);
 
+        for (var i=0; i < datkeys.length; i++){
+          var ent = data[datkeys[i]];
+          var found = true;
+          for (var k=0; k < desckeys.length; k++){
+            var key = desckeys[k];
+            if (key === "_id" && desc[key] !== datkeys[i]){
+              found = false; break;
+            } else if (key === "_type" && ent.type !== desc[key]){
+              found = false; break;
+            } else if(TestObjKeyValue(ent.record, key, desc[key]) === false){
+              found = false; break;
+            }
+          }
+
+          if (found === true){
+            delete data[datkeys[i]];
+            removed += 1;
+          }
+        }
+      } else {
+        throw new TypeError("Expected Object instance.");
+      }
+
+      return removed;
     };
   }
   Collection.prototype.constructor = Collection;
-
-
   
   /* -------------------------------------------------------------------------------------------------------------------------
   ODB (Object DataBase) Class
