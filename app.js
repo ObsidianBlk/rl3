@@ -23,6 +23,7 @@ requirejs([
   'src/Game/States/GameState',
   'src/Game/States/MainMenuState',
   'src/Game/States/GEPEditorState',
+  'src/R/System/ODB',
   'text!data/defs/components.json',
   'text!data/defs/assemblages.json'
 ], function(Heartbeat,
@@ -41,6 +42,7 @@ requirejs([
             GameState,
             MainMenuState,
             GEPEditorState,
+            ODB,
             componentDef,
             assemblageDef){
 
@@ -61,6 +63,14 @@ requirejs([
   // --------------------------------
   // App starts here :)
   ready(function(){
+
+    var db = new ODB();
+    var col = db.collection("bobo");
+    col.add({name:"ObsidianBlk", age:20, description:"An old smuck!"});
+    var res = col.find({name:"ObsidianBlk"});
+    res = col.findAll();
+    res = col.find({age:{"&gt;":20}}); // BROKE!
+    
     var assembler = new Assembler();
     var cdb = assembler.db;
 

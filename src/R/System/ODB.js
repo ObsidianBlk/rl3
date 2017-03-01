@@ -91,7 +91,7 @@
     var found = true;
     var o = obj;
     for (var k = 0; k < keys.length; k++){
-      found = o.hasOwnProperty[keys[k]];
+      found = o.hasOwnProperty(keys[k]);
       if (found === false){break;}
       o = o[keys[k]];
     }
@@ -230,31 +230,42 @@
       var rec = [];
       if (desc.constructor === Object){
         var desckeys = Object.keys(desc);
-        var datkeys = Object.keys(data);
+        var uuids = Object.keys(data);
 
-        for (var i=0; i < datkeys.length; i++){
-          var ent = data[datkeys[i]];
+        for (var i=0; i < uuids.length; i++){
+          var ent = data[uuids[i]];
+          var reckeys = Object.keys(ent.record);
+
           var found = true;
-          for (var k=0; k < desckeys.length; k++){
-            var key = desckeys[k];
-            if (key === "_id" && desc[key] !== datkeys[i]){
+          for (var dk=0; dk < desckeys.length; dk++){
+            var key = desckeys[dk];
+            if (key === "_id" && desc[key] !== uuids[i]){
               found = false; break;
-            } else if (key === "_type" && ent.type !== desc[key]){
-              found = false; break;
-            } else if(TestObjKeyValue(ent.record, key, desc[key]) === false){
-              found = false; break;
+            } else {
+              if (TestObjKeyValue(ent.record, key, desc[key]) === false){
+                found = false; break;
+              }
+              /*for (var rk=0; rk < reckeys.length; rk++){
+                var rkey = reckeys[rk];
+                if (rkey === key && ent.record[rkey] !== desc[key]){
+                  
+                }
+              }*/
+              if (found === false){break;}
             }
           }
 
           if (found === true){
-            if (ent.type !== Object.constructor.name){
+            if (ent.type !== "Object"){
               try {
-                rec.push(parent.ctypes.object(rec.record));
+                rec.push(parent.ctypes.object(uuids[i], ent.record));
               } catch (e) {
                 throw e;
               }
             } else {
-              rec.push(JSON.parse(JSON.stringify(rec.record)));
+              var t = JSON.parse(JSON.stringify(ent.record));
+              t._id = uuids[i];
+              rec.push(t);
             }
           }
         }
@@ -264,28 +275,58 @@
       return rec;
     };
 
+    this.findAll = function(){
+      var rec = [];
+      var datkeys = Object.keys(data);
+      for (var i=0; i < datkeys.length; i++){
+        var ent = data[datkeys[i]];
+        if (ent.type !== "Object"){
+          try {
+            rec.push(parent.ctypes.object(datkeys[i], ent.record));
+          } catch (e) {
+            throw e;
+          }
+        } else {
+          var t = JSON.parse(JSON.stringify(ent.record));
+          t._id = datkeys[i];
+          rec.push(t);
+        }
+      }
+      return rec;
+    };
+
+
     this.remove = function(desc){
       var removed = 0;
       if (desc.constructor === Object){
         var desckeys = Object.keys(desc);
-        var datkeys = Object.keys(data);
+        var uuids = Object.keys(data);
 
-        for (var i=0; i < datkeys.length; i++){
-          var ent = data[datkeys[i]];
+        for (var i=0; i < uuids.length; i++){
+          var ent = data[uuids[i]];
+          var reckeys = Object.keys(ent.record);
+          
           var found = true;
-          for (var k=0; k < desckeys.length; k++){
-            var key = desckeys[k];
-            if (key === "_id" && desc[key] !== datkeys[i]){
+          for (var key in desckeys){
+            if (key === "_id" && desc[key] !== uuids[i]){
               found = false; break;
-            } else if (key === "_type" && ent.type !== desc[key]){
-              found = false; break;
-            } else if(TestObjKeyValue(ent.record, key, desc[key]) === false){
-              found = false; break;
+            } else {
+              if (TestObjKeyValue(ent.record, key, desc[key]) === false){
+                found = false; break;
+              }
+              /*
+              for (var rkey in reckeys){
+                if (rkey === key && ent.record[rkey] !== desc[key]){
+                  found = false; break;
+                }
+              }
+*/
+              if (found === false){break;}
             }
           }
 
           if (found === true){
-            delete data[datkeys[i]];
+            delete data[uuids[i]];
             removed += 1;
           }
         }
