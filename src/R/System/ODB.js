@@ -84,7 +84,34 @@
       return v.toString(16);
     });
   };
-  
+
+
+  function SetObjKey(obj, key, value, createIfNotExists){
+    var keys = key.split(".");
+    var found = true;
+    var o = obj;
+    for (var k = 0; k < keys.length; k++){
+      found = o.hasOwnProperty(keys[k]);
+      if (found === false){
+        if (createIfNotExists === true){
+          if (k < keys.length-1){
+            o[keys[k]] = {};
+          } else {
+            o[keys[k]] = value;
+          }
+        } else {
+          return false;
+        }
+      } else {
+        if (k < keys.length - 1){
+          o = o[keys[k]];
+        } else {
+          o[keys[k]] = value;
+        }
+      }
+    }
+    return true;
+  }
 
   function TestObjKeyValue(obj, key, value){
     var keys = key.split(".");
@@ -97,7 +124,7 @@
     }
 
     if (found === true){
-      if (value.constructor === Object){
+      if (typeof(value) === typeof({})){
         if ("&gt;" in value){
           if (typeof(o) === 'number'){
             return o > value["&gt;"];
@@ -159,6 +186,39 @@
     }
     var data = {};
 
+    function FindUUIDFromDesc(desc){
+      var res = [];
+      if (desc.constructor.name === Object.name){
+        var desckeys = Object.keys(desc);
+        var uuids = Object.keys(data);
+
+        for (var i=0; i < uuids.length; i++){
+          var ent = data[uuids[i]];
+          var reckeys = Object.keys(ent.record);
+
+          var found = true;
+          for (var dk=0; dk < desckeys.length; dk++){
+            var key = desckeys[dk];
+            if (key === "_id" && desc[key] !== uuids[i]){
+              found = false; break;
+            } else {
+              if (TestObjKeyValue(ent.record, key, desc[key]) === false){
+                found = false; break;
+              }
+              if (found === false){break;}
+            }
+          }
+
+          if (found === true){
+            res.push(uuids[i]);
+          }
+        }
+      } else {
+        throw new TypeError("Expected Object instance.");
+      }
+      return res;
+    }
+
     Object.defineProperties(this, {
       "name":{
 	value: name,
@@ -186,7 +246,7 @@
       if (rec === null || typeof(rec) === 'undefined'){
 	throw new Error("Invalid Record Type");
       }
-      if (rec.constructor === Array){
+      if (rec.constructor.name === Array.name){
         try {
           var res = [];
           for (var r=0; r < rec.length; r++){
@@ -219,58 +279,55 @@
       return uuid;
     };
 
-    /*
-      desc [Object]
-      Object definition...
-      {
-        "key":value
+
+    this.update = function(desc, info, createIfNotExists){
+      var uuids = [];
+      try {
+        uuids = FindUUIDFromDesc(desc);
+      } catch (e) {
+        throw e;
       }
-     */
-    this.find = function(desc){
-      var rec = [];
-      if (desc.constructor === Object){
-        var desckeys = Object.keys(desc);
-        var uuids = Object.keys(data);
 
-        for (var i=0; i < uuids.length; i++){
-          var ent = data[uuids[i]];
-          var reckeys = Object.keys(ent.record);
+      var updateCount = 0;
+      for (var i=0; i < uuids.length; i++){
+        var ikeys = Object.keys(info);
 
-          var found = true;
-          for (var dk=0; dk < desckeys.length; dk++){
-            var key = desckeys[dk];
-            if (key === "_id" && desc[key] !== uuids[i]){
-              found = false; break;
-            } else {
-              if (TestObjKeyValue(ent.record, key, desc[key]) === false){
-                found = false; break;
-              }
-              /*for (var rk=0; rk < reckeys.length; rk++){
-                var rkey = reckeys[rk];
-                if (rkey === key && ent.record[rkey] !== desc[key]){
-                  
-                }
-              }*/
-              if (found === false){break;}
-            }
-          }
-
-          if (found === true){
-            if (ent.type !== "Object"){
-              try {
-                rec.push(parent.ctypes.object(uuids[i], ent.record));
-              } catch (e) {
-                throw e;
-              }
-            } else {
-              var t = JSON.parse(JSON.stringify(ent.record));
-              t._id = uuids[i];
-              rec.push(t);
-            }
+        var updated = false;
+        for (var k=0; k < ikeys.length; k++){
+          var key = ikeys[k];
+          if (SetObjKey(data[uuids[i]].record, key, info[key], createIfNotExists) === true){
+            updated = true;
           }
         }
-      } else {
-        throw new TypeError("Expected Object instance.");
+        updateCount += (updated === true) ? 1 : 0;
+      }
+
+      return updateCount;
+    };
+    
+    
+    this.find = function(desc){
+      var rec = [];
+      var uuids = [];
+      try{
+        uuids = FindUUIDFromDesc(desc);
+      } catch (e) {
+        throw e;
+      }
+
+      for (var i=0; i < uuids.length; i++){
+        var ent = data[uuids[i]];
+        if (ent.type !== "Object"){
+          try {
+            rec.push(parent.ctypes.object(uuids[i], ent.record));
+          } catch (e) {
+            throw e;
+          }
+        } else {
+          var t = JSON.parse(JSON.stringify(ent.record));
+          t._id = uuids[i];
+          rec.push(t);
+        }
       }
       return rec;
     };
@@ -298,7 +355,7 @@
 
     this.remove = function(desc){
       var removed = 0;
-      if (desc.constructor === Object){
+      if (desc.constructor.name === Object.name){
         var desckeys = Object.keys(desc);
         var uuids = Object.keys(data);
 
@@ -307,20 +364,14 @@
           var reckeys = Object.keys(ent.record);
           
           var found = true;
-          for (var key in desckeys){
+          for (var dk=0; dk < desckeys.length; dk++){
+            var key = desckeys[dk];
             if (key === "_id" && desc[key] !== uuids[i]){
               found = false; break;
             } else {
               if (TestObjKeyValue(ent.record, key, desc[key]) === false){
                 found = false; break;
               }
-              /*
-              for (var rkey in reckeys){
-                if (rkey === key && ent.record[rkey] !== desc[key]){
-                  found = false; break;
-                }
-              }
-*/
               if (found === false){break;}
             }
           }

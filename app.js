@@ -66,10 +66,40 @@ requirejs([
 
     var db = new ODB();
     var col = db.collection("bobo");
-    col.add({name:"ObsidianBlk", age:20, description:"An old smuck!"});
+    col.add([
+      {name:"ObsidianBlk", age:20, description:"He's the man"},
+      {name:"JimboSteve", age:35, description:"The one down under"},
+      {name:"Pheonix", age:11, description:"One HOT lady"},
+      {name:"Viktor", age:44, description:"Do not mess with"},
+      {name:"SpigettiMonster", age:200, description:"An old smuck!"}
+    ]);
     var res = col.find({name:"ObsidianBlk"});
     res = col.findAll();
-    res = col.find({age:{"&gt;":20}}); // BROKE!
+    if (res.length !== 5){
+      console.error("FindAll() : Wrong result count!");
+    }
+    res = col.find({age:{"&ne;":35}});
+    if (res.length !== 4){
+      console.error("Find() : Wrong result count!");
+    }
+    col.remove({name:"JimboSteve"});
+    res = col.findAll();
+    if (res.length !== 4){
+      console.error("Remove() : Wrong result count!");
+    }
+    var count = col.update({age:{"&lt;":33}}, {description:"This description has been changed... ha!"});
+    if (count !== 2){
+      console.error("Update() : Count !== 2");
+    }
+    count = col.update({name:"ObsidianBlk"}, {score:10}, true);
+    if (count !== 1){
+      console.error("Update() : Count !== 1");
+    }
+    count = col.update({name:"Pheonix"}, {score:10});
+    if (count !== 0){
+      console.error("Update() : Count !== 0");
+    }
+    res = col.findAll();
     
     var assembler = new Assembler();
     var cdb = assembler.db;
